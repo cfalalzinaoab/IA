@@ -1,0 +1,477 @@
+/* ==========================================================================
+   NAVE.CSS · el sistema de diseño del puente de mando
+   --------------------------------------------------------------------------
+   Lo comparten las tres páginas: la portada (index.html), el pase de
+   diapositivas (clase.html) y el laboratorio (laboratorio.html).
+
+   La idea: el CHASIS es de carguero espacial de los setenta —paneles
+   atornillados, rótulos técnicos, ámbar de aviso— y la SEÑAL es código que
+   llueve en fósforo verde. El texto que hay que leer va siempre en hueso
+   claro sobre casco oscuro: el verde y el ámbar se quedan para rótulos,
+   marcos y acentos, que es donde no cansan la vista.
+   ========================================================================== */
+
+/* ---------- 1. Fuentes (alojadas aquí: el sitio no llama a nadie) -------- */
+
+@font-face {
+  font-family: "Michroma";
+  src: url("../fuentes/michroma-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("../fuentes/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("../fuentes/ibm-plex-mono-latin-400-italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("../fuentes/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("../fuentes/ibm-plex-mono-latin-700-normal.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "VT323";
+  src: url("../fuentes/vt323-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+
+/* ---------- 2. Fichas de color y medida ---------------------------------- */
+
+:root {
+  /* el casco, de más hondo a más cercano */
+  --negro:     #030806;
+  --casco:     #08120e;
+  --casco-2:   #0d1b15;
+  --casco-3:   #13271e;
+  --linea:     #1c3b2c;
+  --linea-viva:#2c6146;
+
+  /* fósforo: la señal */
+  --fosforo:   #5dff9b;
+  --fosforo-2: #34c873;
+  --fosforo-3: #1c7a47;
+  --fosforo-4: #0f3d25;
+
+  /* ámbar: los avisos y lo que se puede tocar */
+  --ambar:     #ffb224;
+  --ambar-2:   #c98412;
+  --ambar-3:   #5e3d08;
+
+  /* hueso: lo que se lee */
+  --hueso:     #dff5e8;
+  --hueso-2:   #a3c7b3;
+  --hueso-3:   #6a8c7a;
+
+  --alarma:    #ff5a45;
+  --cian:      #7fe6ff;
+
+  --brillo:       0 0 .55em rgba(93, 255, 155, .42);
+  --brillo-ambar: 0 0 .55em rgba(255, 178, 36, .40);
+
+  --rotulo: "Michroma", "Eurostile", "Bank Gothic", "Arial Narrow", sans-serif;
+  --mono:   "Plex Mono", "IBM Plex Mono", ui-monospace, "Cascadia Mono", "Menlo", "Consolas", monospace;
+  --crt:    "VT323", "Plex Mono", ui-monospace, monospace;
+
+  --radio: 3px;
+  --paso: 8px;
+}
+
+/* PASTILLA ROJA: todo pasa a ser código. El ámbar se rinde al verde. */
+html.modo-codigo {
+  --ambar:   #b6ffcf;
+  --ambar-2: #5dff9b;
+  --ambar-3: #14532f;
+  --hueso:   #b9ffd3;
+  --hueso-2: #6fe0a0;
+  --hueso-3: #3b9a68;
+  --casco:   #041009;
+  --casco-2: #071a0f;
+  --casco-3: #0b2616;
+  --brillo-ambar: var(--brillo);
+}
+
+/* SALA BLANCA: el cuarto de carga, sin nada todavía. Dura unos segundos. */
+html.sala-blanca {
+  --negro:     #f3f5f1;
+  --casco:     #ffffff;
+  --casco-2:   #eef1ec;
+  --casco-3:   #e2e7e0;
+  --linea:     #c9d2c8;
+  --linea-viva:#93a394;
+  --fosforo:   #0d6b3a;
+  --fosforo-2: #1a8a4e;
+  --fosforo-3: #6fae89;
+  --fosforo-4: #cfe6d8;
+  --ambar:     #a35a00;
+  --ambar-2:   #c47a10;
+  --ambar-3:   #f3dfb8;
+  --hueso:     #101a14;
+  --hueso-2:   #3a4a40;
+  --hueso-3:   #6b7a70;
+  --brillo: none;
+  --brillo-ambar: none;
+}
+
+/* ---------- 3. Base ------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  background: var(--negro);
+  color: var(--hueso);
+  font-family: var(--mono);
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-color: var(--fosforo-3) var(--casco);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 700px at 70% -10%, rgba(52, 200, 115, .07), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(255, 178, 36, .05), transparent 60%),
+    var(--negro);
+  transition: background-color .6s, color .6s;
+}
+
+h1, h2, h3, h4, p, ul, ol, figure, blockquote { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+img, svg, canvas { display: block; max-width: 100%; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+a { color: var(--fosforo); text-underline-offset: .2em; }
+a:hover { color: var(--ambar); }
+
+::selection { background: var(--fosforo); color: var(--negro); }
+
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--ambar); outline-offset: 3px; }
+
+[hidden] { display: none !important; }
+
+.solo-lector {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ---------- 4. El tubo: líneas de barrido y viñeta ------------------------ */
+
+.tubo::before,
+.tubo::after {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+}
+.tubo::before {
+  z-index: 900;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, .16) 2px, rgba(0, 0, 0, .16) 3px);
+}
+.tubo::after {
+  z-index: 901;
+  background: radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, .5) 100%);
+}
+html.sala-blanca .tubo::before,
+html.sala-blanca .tubo::after { opacity: 0; }
+
+/* ---------- 5. Rótulos y tipografía --------------------------------------- */
+
+.rotulo {
+  font-family: var(--rotulo);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  line-height: 1.15;
+}
+.rotulo--fosforo { color: var(--fosforo); text-shadow: var(--brillo); }
+.rotulo--ambar   { color: var(--ambar);   text-shadow: var(--brillo-ambar); }
+
+.micro {
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--hueso-3);
+}
+.crt { font-family: var(--crt); letter-spacing: .04em; }
+
+.tenue { color: var(--hueso-2); }
+.verde { color: var(--fosforo); }
+.ambar { color: var(--ambar); }
+.rojo  { color: var(--alarma); }
+
+/* marcas dentro de los textos: *énfasis*, **fuerte**, `código` */
+.m-enf  { font-style: normal; color: var(--ambar); }
+.m-fue  { font-weight: 700; color: var(--fosforo); }
+.m-cod  {
+  font-family: var(--mono);
+  padding: .05em .35em;
+  border: 1px solid var(--linea-viva);
+  border-radius: var(--radio);
+  background: var(--casco-3);
+  color: var(--fosforo);
+}
+
+/* ---------- 6. Paneles ----------------------------------------------------- */
+
+.panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .025), transparent 40%),
+    var(--casco);
+  border: 1px solid var(--linea);
+}
+/* las cuatro escuadras de las esquinas */
+.panel::before,
+.panel::after {
+  content: "";
+  position: absolute; inset: -1px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) left top / 14px 1px,
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) left top / 1px 14px,
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) right bottom / 14px 1px,
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) right bottom / 1px 14px;
+  background-repeat: no-repeat;
+}
+.panel::after {
+  background:
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) right top / 14px 1px,
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) right top / 1px 14px,
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) left bottom / 14px 1px,
+    linear-gradient(var(--fosforo-2), var(--fosforo-2)) left bottom / 1px 14px;
+  background-repeat: no-repeat;
+}
+.panel--ambar::before, .panel--ambar::after { filter: hue-rotate(-95deg) saturate(1.6) brightness(1.2); }
+
+.panel__cabecera {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--linea);
+  background: var(--casco-2);
+  min-height: 38px;
+}
+.panel__titulo {
+  font-family: var(--rotulo);
+  font-size: .68rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--fosforo);
+}
+.panel__codigo {
+  margin-left: auto;
+  font-size: .64rem; letter-spacing: .16em;
+  color: var(--hueso-3);
+  white-space: nowrap;
+}
+.panel__cuerpo { padding: 16px; }
+
+/* ---------- 7. Botones, pilotos y fichas ---------------------------------- */
+
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: .6em;
+  min-height: 40px;
+  padding: .45em 1.1em;
+  border: 1px solid var(--fosforo-2);
+  border-radius: var(--radio);
+  background: transparent;
+  color: var(--fosforo);
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: .82rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background-color .12s, color .12s, box-shadow .12s, border-color .12s;
+}
+.boton:hover, .boton:focus-visible {
+  background: var(--fosforo);
+  color: var(--negro);
+  box-shadow: var(--brillo);
+}
+.boton:active { transform: translateY(1px); }
+.boton[disabled] { opacity: .4; cursor: not-allowed; }
+.boton[aria-pressed="true"] { background: var(--fosforo-4); border-color: var(--fosforo); }
+.boton[aria-pressed="true"]:hover { background: var(--fosforo); }
+
+.boton--ambar { border-color: var(--ambar-2); color: var(--ambar); }
+.boton--ambar:hover, .boton--ambar:focus-visible {
+  background: var(--ambar); color: var(--negro); box-shadow: var(--brillo-ambar);
+}
+.boton--ambar[aria-pressed="true"] { background: var(--ambar-3); border-color: var(--ambar); }
+
+.boton--mini { min-height: 30px; padding: .2em .7em; font-size: .7rem; }
+.boton--icono { padding: .3em .55em; min-width: 40px; }
+.boton .icono { width: 1.25em; height: 1.25em; }
+
+.piloto {
+  display: inline-block;
+  width: .62em; height: .62em;
+  border-radius: 50%;
+  background: var(--fosforo);
+  box-shadow: 0 0 .5em var(--fosforo);
+  vertical-align: baseline;
+}
+.piloto--ambar  { background: var(--ambar);  box-shadow: 0 0 .5em var(--ambar); }
+.piloto--rojo   { background: var(--alarma); box-shadow: 0 0 .5em var(--alarma); }
+.piloto--apagado{ background: var(--linea-viva); box-shadow: none; }
+.piloto--late   { animation: late 1.6s ease-in-out infinite; }
+@keyframes late { 50% { opacity: .25; } }
+
+.ficha {
+  display: inline-flex; align-items: center; gap: .5em;
+  padding: .12em .6em;
+  border: 1px solid var(--linea-viva);
+  border-radius: 999px;
+  font-size: .68rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--hueso-2);
+  white-space: nowrap;
+}
+
+.franja-aviso {
+  height: 10px;
+  background: repeating-linear-gradient(-45deg,
+    var(--ambar) 0, var(--ambar) 10px,
+    #0b0b08 10px, #0b0b08 20px);
+  opacity: .85;
+}
+
+.icono { width: 1.4em; height: 1.4em; flex: none; }
+
+/* cursor de bloque que parpadea */
+.cursor {
+  display: inline-block;
+  width: .6em; height: 1.1em;
+  margin-left: .08em;
+  background: currentColor;
+  vertical-align: text-bottom;
+  animation: parpadeo 1s steps(1) infinite;
+}
+@keyframes parpadeo { 50% { opacity: 0; } }
+
+/* ---------- 8. Campos ------------------------------------------------------ */
+
+.campo {
+  width: 100%;
+  padding: .55em .75em;
+  border: 1px solid var(--linea-viva);
+  border-radius: var(--radio);
+  background: var(--negro);
+  color: var(--hueso);
+  font-family: var(--mono);
+}
+.campo:focus { border-color: var(--fosforo); box-shadow: var(--brillo); outline: none; }
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 22px; background: transparent; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; background: var(--linea-viva); border-radius: 2px;
+}
+input[type="range"]::-moz-range-track {
+  height: 4px; background: var(--linea-viva); border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 22px; margin-top: -9px;
+  background: var(--ambar); border: 0; border-radius: 2px;
+  box-shadow: var(--brillo-ambar);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 22px;
+  background: var(--ambar); border: 0; border-radius: 2px;
+  box-shadow: var(--brillo-ambar);
+}
+
+/* ---------- 9. Avisos flotantes ------------------------------------------- */
+
+.avisos {
+  position: fixed; right: 18px; top: 18px; z-index: 950;
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: min(420px, calc(100vw - 36px));
+  pointer-events: none;
+}
+.aviso {
+  padding: 10px 14px 10px 16px;
+  border: 1px solid var(--fosforo-2);
+  border-left-width: 4px;
+  background: var(--casco-2);
+  color: var(--hueso);
+  font-size: .86rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .55);
+  animation: aviso-entra .25s ease-out;
+}
+.aviso--ambar { border-color: var(--ambar); }
+.aviso--rojo  { border-color: var(--alarma); }
+.aviso--sale  { opacity: 0; transform: translateX(20px); transition: opacity .3s, transform .3s; }
+@keyframes aviso-entra { from { opacity: 0; transform: translateX(20px); } }
+
+/* ---------- 10. Barra superior común -------------------------------------- */
+
+.barra {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--linea);
+  background: linear-gradient(180deg, var(--casco-2), var(--casco));
+}
+.barra__marca {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--fosforo);
+  text-decoration: none;
+  min-width: 0;
+}
+.barra__marca:hover { color: var(--fosforo); }
+.barra__emblema { width: 34px; height: 34px; flex: none; }
+.barra__nombre {
+  font-family: var(--rotulo);
+  font-size: .78rem; letter-spacing: .2em; text-transform: uppercase;
+  text-shadow: var(--brillo);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.barra__sub {
+  display: block;
+  font-family: var(--mono);
+  font-size: .62rem; letter-spacing: .2em; color: var(--hueso-3);
+  text-shadow: none;
+}
+.barra__hueco { flex: 1; }
+.barra__reloj {
+  font-family: var(--crt);
+  font-size: 1.25rem; letter-spacing: .08em;
+  color: var(--ambar);
+  text-shadow: var(--brillo-ambar);
+  white-space: nowrap;
+}
+.barra__mandos { display: flex; gap: 8px; }
+
+@media (max-width: 720px) {
+  .barra { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+  .barra__reloj { font-size: 1.05rem; order: 3; width: 100%; }
+  .barra__sub { display: none; }
+}
+
+/* ---------- 11. Quien pide calma, la tiene -------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

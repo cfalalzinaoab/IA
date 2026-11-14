@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laboratorio · Inteligencia artificial</title>
+<meta name="description" content="Tres aparatos para ver por dentro cómo aprende y cómo escribe una inteligencia artificial.">
+<meta name="theme-color" content="#030806">
+<link rel="icon" href="img/emblema.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/nave.css">
+<link rel="stylesheet" href="css/demos.css">
+<link rel="stylesheet" href="css/lab.css">
+</head>
+<body class="tubo lab">
+
+<header class="barra">
+  <a class="barra__marca" href="index.html" aria-label="Volver al puente de mando">
+    <span id="emblema"></span>
+    <span class="barra__nombre">Nodriza · Laboratorio
+      <span class="barra__sub">Sección B · tres bancos de pruebas</span>
+    </span>
+  </a>
+  <span class="barra__hueco"></span>
+  <span class="barra__reloj" id="reloj" aria-label="Fecha y hora de a bordo"></span>
+  <div class="barra__mandos">
+    <button class="boton boton--mini boton--icono" id="mando-sonido" type="button" aria-pressed="false" title="Sonido de la nave"></button>
+    <a class="boton boton--mini" href="index.html">Puente</a>
+  </div>
+</header>
+
+<main class="lab__cuerpo">
+
+  <nav class="lab__pestanas" id="pestanas" role="tablist" aria-label="Aparatos del laboratorio"></nav>
+
+  <section class="lab__banco panel" id="banco" role="tabpanel" tabindex="0" aria-live="off">
+    <div class="panel__cabecera">
+      <h1 class="panel__titulo lab__titulo" id="banco-titulo">Laboratorio</h1>
+      <span class="panel__codigo" id="banco-codigo">BANCO 01</span>
+    </div>
+    <div class="panel__cuerpo">
+      <p class="lab__entrada" id="banco-entrada"></p>
+      <div class="lab__aparato" id="aparato"></div>
+    </div>
+  </section>
+
+  <section class="lab__notas panel panel--ambar" aria-labelledby="notas-titulo">
+    <div class="panel__cabecera">
+      <h2 class="panel__titulo" id="notas-titulo">En qué fijarse</h2>
+      <span class="panel__codigo">Cuaderno de a bordo</span>
+    </div>
+    <div class="panel__cuerpo">
+      <ul class="lab__lista" id="notas"></ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <div class="franja-aviso"></div>
+  <p class="pie__texto micro">
+    Todo se calcula en este navegador: nada de lo que escribas sale de aquí ·
+    <a href="index.html">Volver al puente</a>
+  </p>
+</footer>
+
+<noscript>
+  <div class="sin-guion panel">
+    <p class="rotulo rotulo--ambar">Sin JavaScript no hay laboratorio</p>
+    <p>Los aparatos son programas que corren en el navegador. Activa JavaScript y vuelve a cargar la página.</p>
+  </div>
+</noscript>
+
+<script src="js/nucleo.js"></script>
+<script src="js/iconos.js"></script>
+<script src="js/sonido.js"></script>
+<script src="js/demos/corpus.js"></script>
+<script src="js/demos/red.js"></script>
+<script src="js/demos/tokens.js"></script>
+<script src="js/demos/siguiente.js"></script>
+<script src="js/lab.js"></script>
+</body>
+</html>

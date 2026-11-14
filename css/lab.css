@@ -1,0 +1,62 @@
+/* ==========================================================================
+   LAB.CSS · la página del laboratorio
+   --------------------------------------------------------------------------
+   Tres pestañas, un banco donde se monta el aparato elegido y, debajo, el
+   cuaderno con lo que conviene mirar. El aparato en sí se pinta con
+   demos.css; aquí solo va lo que lo rodea.
+   ========================================================================== */
+
+.lab__cuerpo {
+  display: grid; gap: 18px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.lab__pestanas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pestana {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--linea-viva);
+  background: var(--casco);
+  color: var(--hueso-2);
+  text-align: left;
+  transition: border-color .15s, color .15s, background-color .15s;
+}
+.pestana .icono { width: 38px; height: 38px; }
+.pestana__nombre {
+  font-family: var(--rotulo);
+  font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; line-height: 1.3;
+}
+.pestana__numero { display: block; font-family: var(--mono); font-size: .62rem; letter-spacing: .18em; color: var(--hueso-3); }
+.pestana:hover { border-color: var(--ambar); color: var(--hueso); }
+.pestana[aria-selected="true"] {
+  border-color: var(--ambar);
+  background: var(--casco-3);
+  color: var(--ambar);
+  box-shadow: 0 0 0 1px var(--ambar), 0 0 24px rgba(255, 178, 36, .12);
+}
+
+.lab__titulo { font-size: .9rem; }
+.lab__entrada { max-width: 62em; margin-bottom: 18px; color: var(--hueso); }
+.lab__aparato { font-size: 17px; }
+
+.lab__lista { display: grid; gap: 10px; max-width: 70em; }
+.lab__lista li { position: relative; padding-left: 1.6em; }
+.lab__lista li::before {
+  content: "▸"; position: absolute; left: 0; top: 0;
+  color: var(--ambar);
+}
+
+.pie { margin-top: 10px; }
+.pie__texto { padding: 14px 18px 26px; text-align: center; line-height: 1.9; }
+.sin-guion { max-width: 640px; margin: 40px auto; padding: 24px; }
+.sin-guion p + p { margin-top: 12px; }
+
+@media (max-width: 760px) {
+  .lab__cuerpo { padding: 12px; gap: 12px; }
+  .lab__pestanas { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .pestana { padding: 8px 12px; }
+  .pestana .icono { width: 30px; height: 30px; }
+  .lab__aparato { font-size: 15px; }
+}

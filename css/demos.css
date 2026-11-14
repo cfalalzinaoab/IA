@@ -1,0 +1,184 @@
+/* ==========================================================================
+   DEMOS.CSS · los tres aparatos del laboratorio
+   --------------------------------------------------------------------------
+   Los aparatos se montan en dos sitios: en laboratorio.html, a tamaño de
+   página, y dentro de una diapositiva de tipo «demo», a tamaño de proyector.
+   Por eso aquí TODO va en «em»: quien monta el aparato le pone un tamaño de
+   letra a .demo y lo demás crece o encoge con él.
+   ========================================================================== */
+
+.demo {
+  font-size: 1em;
+  color: var(--hueso);
+  min-width: 0;
+}
+.demo canvas { width: 100%; height: auto; font-family: var(--mono); }
+.demo__pie { margin-top: .6em; font-size: .78em; color: var(--hueso-3); }
+
+.demo .boton { font-size: .78em; min-height: 2.6em; }
+.demo .boton--mini { font-size: .68em; min-height: 2.5em; }
+.demo .micro { font-size: .64em; }
+.demo .campo { font-size: .95em; }
+
+.mando { display: flex; flex-direction: column; gap: .45em; min-width: 0; }
+.mando__titulo { display: flex; flex-direction: column; gap: .5em; color: var(--hueso-2); }
+span.mando__titulo { display: block; }
+.mando__fila { display: flex; flex-wrap: wrap; gap: .5em; align-items: center; }
+.mando__fila--acciones { margin: .2em 0; }
+.mando__par { display: flex; flex-wrap: wrap; gap: 1em 1.6em; }
+
+.demo__lecturas {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: .2em .8em;
+  margin: 0;
+  padding: .6em .8em;
+  border: 1px solid var(--linea);
+  background: var(--negro);
+}
+.demo__lecturas dt {
+  grid-row: 1;
+  font-size: .62em; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--hueso-3);
+}
+.demo__lecturas dd {
+  grid-row: 2; margin: 0;
+  font-family: var(--crt); font-size: 1.7em; line-height: 1;
+  color: var(--fosforo); text-shadow: var(--brillo);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- La red -------------------------------------------------------- */
+
+.red {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 1.4em;
+  align-items: start;
+}
+.red__plano {
+  aspect-ratio: 1;
+  border: 1px solid var(--linea-viva);
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+.red__derecha { display: flex; flex-direction: column; gap: .8em; min-width: 0; }
+.red__esquema { border: 1px solid var(--linea); background: var(--negro); }
+.red__curva { background: var(--negro); }
+
+@media (max-width: 760px) {
+  .red { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- El troceador -------------------------------------------------- */
+
+.tokens { display: flex; flex-direction: column; gap: 1em; }
+.tokens__texto { resize: vertical; min-height: 4.4em; line-height: 1.45; }
+.tokens__medio {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1em 1.6em; align-items: end;
+}
+.tokens__cuenta { font-size: 1.6em; line-height: 1; color: var(--ambar); text-shadow: var(--brillo-ambar); }
+.tokens__salida {
+  display: flex; flex-wrap: wrap; gap: .35em .3em; align-content: flex-start;
+  min-height: 6.2em;
+  padding: .9em;
+  border: 1px solid var(--linea-viva);
+  background: var(--negro);
+}
+.trozo {
+  display: inline-flex; flex-direction: column; align-items: center;
+  padding: .12em .42em;
+  border: 1px solid;
+  border-radius: var(--radio);
+  font-size: 1.12em; line-height: 1.35;
+  white-space: pre;
+}
+.trozo--0 { color: var(--fosforo);  border-color: var(--fosforo-3); background: rgba(93, 255, 155, .09); }
+.trozo--1 { color: var(--ambar);    border-color: var(--ambar-2);   background: rgba(255, 178, 36, .10); }
+.trozo--2 { color: var(--cian);     border-color: #2d7f93;          background: rgba(127, 230, 255, .09); }
+.trozo--3 { color: var(--hueso);    border-color: var(--hueso-3);   background: rgba(223, 245, 232, .07); }
+.trozo--raro { border-style: dashed; }
+.trozo__numero {
+  font-family: var(--crt); font-size: .78em; line-height: 1;
+  opacity: .75; padding-bottom: .1em;
+}
+.tokens__abajo {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 1.2em; align-items: start;
+}
+.tokens__fusiones {
+  margin-top: .5em;
+  font-size: .88em; line-height: 1.7;
+  min-height: 8.5em;
+}
+.tokens__par {
+  padding: 0 .3em;
+  border: 1px solid var(--linea-viva); border-radius: var(--radio);
+  color: var(--hueso); white-space: pre;
+}
+.tokens__par--nuevo { color: var(--negro); background: var(--fosforo); border-color: var(--fosforo); }
+
+@media (max-width: 760px) {
+  .tokens__medio, .tokens__abajo { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- La palabra siguiente ----------------------------------------- */
+
+.siguiente {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1.6em;
+  align-items: start;
+}
+.siguiente__izquierda { display: flex; flex-direction: column; gap: .8em; min-width: 0; }
+.siguiente__derecha { min-width: 0; }
+.siguiente__frase {
+  min-height: 5.6em;
+  padding: .7em .9em;
+  border: 1px solid var(--linea-viva);
+  background: var(--negro);
+  font-size: 1.3em; line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.siguiente__antes { color: var(--hueso-2); }
+/* las dos palabras que el modelo alcanza a ver */
+.siguiente__vista {
+  color: var(--negro); background: var(--fosforo);
+  padding: 0 .25em;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}
+.siguiente__frase .cursor { color: var(--ambar); }
+.siguiente__mira { font-size: .82em; color: var(--hueso-2); min-height: 2.6em; }
+.siguiente__mira.ambar { color: var(--ambar); }
+.siguiente__escala { display: flex; justify-content: space-between; }
+
+.siguiente__candidatas { display: flex; flex-direction: column; gap: .35em; margin-top: .6em; }
+.candidata {
+  display: grid; grid-template-columns: 8.5em minmax(0, 1fr) 3.6em; gap: .7em; align-items: center;
+  width: 100%;
+  padding: .4em .7em;
+  border: 1px solid var(--linea-viva);
+  border-radius: var(--radio);
+  background: var(--casco-2);
+  color: var(--hueso);
+  text-align: left;
+  font-size: 1em;
+  transition: border-color .12s, background-color .12s;
+}
+.candidata:hover, .candidata:focus-visible { border-color: var(--ambar); background: var(--casco-3); }
+.candidata__palabra { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.candidata__barra { height: .7em; background: var(--negro); border: 1px solid var(--linea); }
+.candidata__barra span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--fosforo-3), var(--fosforo));
+  transition: width .25s;
+}
+.candidata__p {
+  font-family: var(--crt); font-size: 1.25em; line-height: 1;
+  text-align: right; color: var(--fosforo);
+  font-variant-numeric: tabular-nums;
+}
+.siguiente__sola { min-width: 14.5em; }
+.siguiente__resto { font-size: .8em; padding: .3em .2em; }
+
+@media (max-width: 760px) {
+  .siguiente { grid-template-columns: minmax(0, 1fr); }
+  .candidata { grid-template-columns: 6.5em minmax(0, 1fr) 3.2em; }
+}

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puente de mando · Inteligencia artificial</title>
+<meta name="description" content="Las clases de inteligencia artificial, diapositiva a diapositiva, y un laboratorio para ver cómo aprende una máquina.">
+<meta name="theme-color" content="#030806">
+<link rel="icon" href="img/emblema.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/nave.css">
+<link rel="stylesheet" href="css/portal.css">
+</head>
+<body class="tubo portal">
+
+<a class="salto" href="#clases">Saltar al archivo de clases</a>
+
+<header class="barra">
+  <a class="barra__marca" href="index.html" aria-label="Puente de mando, inicio">
+    <span id="emblema"></span>
+    <span class="barra__nombre">Nodriza · Puente de mando
+      <span class="barra__sub">Interfaz de a bordo · IA</span>
+    </span>
+  </a>
+  <span class="barra__hueco"></span>
+  <span class="barra__reloj" id="reloj" aria-label="Fecha y hora de a bordo"></span>
+  <div class="barra__mandos">
+    <button class="boton boton--mini boton--icono" id="mando-sonido" type="button" aria-pressed="false" title="Sonido de la nave"></button>
+    <button class="boton boton--mini boton--icono" id="mando-lluvia" type="button" aria-pressed="true" title="Lluvia de código"></button>
+  </div>
+</header>
+
+<main class="puente">
+
+  <div class="puente__principal">
+
+    <!-- EL VISOR: la lluvia tras el cristal y el nombre del curso -->
+    <section class="visor panel" aria-labelledby="titulo-curso">
+      <canvas class="visor__lluvia" id="lluvia" aria-hidden="true"></canvas>
+      <div class="visor__velo" aria-hidden="true"></div>
+      <div class="visor__esquina visor__esquina--ai micro" aria-hidden="true">
+        <span class="piloto piloto--rojo piloto--late"></span> Visor 01 · señal en directo
+      </div>
+      <div class="visor__esquina visor__esquina--ad micro" id="visor-coordenadas" aria-hidden="true"></div>
+      <div class="visor__esquina visor__esquina--bd micro" id="visor-lectura" aria-hidden="true"></div>
+      <div class="visor__contenido">
+        <p class="micro visor__ante" id="visor-ante">Curso</p>
+        <h1 class="visor__titulo rotulo" id="titulo-curso">
+          <span class="visor__linea" id="titulo-1">Inteligencia</span>
+          <span class="visor__linea visor__linea--ambar" id="titulo-2">artificial</span>
+        </h1>
+        <p class="visor__lema" id="visor-lema"></p>
+        <div class="visor__acciones">
+          <a class="boton boton--ambar" id="accion-ultima" href="#clases">Ir a las clases</a>
+          <a class="boton" href="laboratorio.html">Laboratorio</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- EL ARCHIVO: una bahía por clase -->
+    <section class="archivo panel" id="clases" aria-labelledby="archivo-titulo">
+      <div class="panel__cabecera">
+        <h2 class="panel__titulo" id="archivo-titulo">Archivo de clases</h2>
+        <span class="panel__codigo" id="archivo-codigo">SEC·A / 00 REGISTROS</span>
+      </div>
+      <div class="panel__cuerpo">
+        <div class="bahias" id="bahias">
+          <p class="tenue" id="bahias-espera">Leyendo el archivo<span class="cursor"></span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- EL LABORATORIO: las tres demostraciones -->
+    <section class="banco panel" aria-labelledby="banco-titulo">
+      <div class="panel__cabecera">
+        <h2 class="panel__titulo" id="banco-titulo">Laboratorio</h2>
+        <span class="panel__codigo">SEC·B / 03 BANCOS</span>
+      </div>
+      <div class="panel__cuerpo">
+        <p class="banco__entrada tenue">Tres aparatos para tocar. No hace falta saber nada: se aprende mirando qué pasa.</p>
+        <div class="bancos" id="bancos"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <aside class="puente__mando" aria-label="Estación de mando">
+
+    <section class="telemetria panel" aria-labelledby="telemetria-titulo">
+      <div class="panel__cabecera">
+        <h2 class="panel__titulo" id="telemetria-titulo">Estado de la nave</h2>
+        <span class="panel__codigo">SEC·C</span>
+      </div>
+      <div class="panel__cuerpo">
+        <dl class="lecturas" id="lecturas"></dl>
+        <div class="senal" aria-hidden="true" id="senal"></div>
+      </div>
+    </section>
+
+    <section class="consola panel panel--ambar" id="consola" aria-labelledby="consola-titulo">
+      <div class="panel__cabecera">
+        <h2 class="panel__titulo" id="consola-titulo">Consola</h2>
+        <span class="panel__codigo">Tecla / para escribir</span>
+      </div>
+      <div class="consola__cuerpo" id="consola-cuerpo"></div>
+    </section>
+
+  </aside>
+
+</main>
+
+<footer class="pie">
+  <div class="franja-aviso"></div>
+  <p class="pie__texto micro">
+    <span id="pie-curso">Inteligencia artificial</span> · Hecho a mano, sin servidor ni rastreadores ·
+    <a href="laboratorio.html">Laboratorio</a>
+  </p>
+</footer>
+
+<noscript>
+  <div class="sin-guion panel">
+    <p class="rotulo rotulo--ambar">Sin JavaScript no hay nave</p>
+    <p>Esta web dibuja las clases con JavaScript. Actívalo en el navegador y vuelve a cargar la página.</p>
+  </div>
+</noscript>
+
+<script src="js/nucleo.js"></script>
+<script src="js/iconos.js"></script>
+<script src="js/sonido.js"></script>
+<script src="js/lluvia.js"></script>
+<script src="js/consola.js"></script>
+<script src="js/huevos.js"></script>
+<script src="js/arranque.js"></script>
+<script src="clases/indice.js"></script>
+<script src="js/portal.js"></script>
+</body>
+</html>

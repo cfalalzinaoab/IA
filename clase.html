@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clase · Inteligencia artificial</title>
+<meta name="theme-color" content="#030806">
+<link rel="icon" href="img/emblema.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/nave.css">
+<link rel="stylesheet" href="css/demos.css">
+<link rel="stylesheet" href="css/pase.css">
+</head>
+<body class="pase modo-pase">
+
+<!-- EL PASE: un escenario de 1600 × 900 que se escala entero a la pantalla -->
+<main class="sala" id="sala" aria-label="Diapositivas"></main>
+
+<!-- LA LECTURA: todas las diapositivas seguidas (móvil de pie e impresión) -->
+<div class="lectura" id="lectura"></div>
+
+<!-- EL PRESENTADOR: solo se llena en clase.html?c=NN&presentador=1 -->
+<div id="presentador"></div>
+
+<!-- si la clase no existe -->
+<div id="averia"></div>
+
+<!-- el índice -->
+<div class="capa" id="capa-indice" role="dialog" aria-modal="true" aria-label="Índice de diapositivas" hidden>
+  <div class="capa__caja panel">
+    <div class="panel__cabecera">
+      <h2 class="panel__titulo">Índice</h2>
+      <button class="boton boton--mini" type="button" data-cerrar>Cerrar · Esc</button>
+    </div>
+    <div class="capa__rejilla"></div>
+  </div>
+</div>
+
+<!-- la ayuda -->
+<div class="capa" id="capa-ayuda" role="dialog" aria-modal="true" aria-label="Teclas del pase" hidden>
+  <div class="capa__caja capa__caja--estrecha panel panel--ambar">
+    <div class="panel__cabecera">
+      <h2 class="panel__titulo">Teclas</h2>
+      <button class="boton boton--mini" type="button" data-cerrar>Cerrar · Esc</button>
+    </div>
+    <dl class="teclas">
+      <dt><kbd>→</kbd> <kbd>Espacio</kbd> <kbd>AvPág</kbd></dt><dd>Avanzar (un paso o una diapositiva)</dd>
+      <dt><kbd>←</kbd> <kbd>RePág</kbd></dt><dd>Retroceder</dd>
+      <dt><kbd>Inicio</kbd> <kbd>Fin</kbd></dt><dd>Primera y última</dd>
+      <dt><kbd>1</kbd><kbd>2</kbd> <kbd>Intro</kbd></dt><dd>Ir a la diapositiva 12</dd>
+      <dt><kbd>I</kbd></dt><dd>Índice</dd>
+      <dt><kbd>F</kbd></dt><dd>Pantalla completa</dd>
+      <dt><kbd>N</kbd></dt><dd>Ventana del presentador: notas, lo que viene y cronómetro</dd>
+      <dt><kbd>L</kbd></dt><dd>Modo lectura: todo seguido, para leer o imprimir</dd>
+      <dt><kbd>B</kbd></dt><dd>Pantalla en negro (para que miren a quien habla)</dd>
+      <dt><kbd>S</kbd></dt><dd>Sonido</dd>
+      <dt><kbd>?</kbd></dt><dd>Esta ayuda</dd>
+    </dl>
+    <p class="teclas__pie tenue">En pantalla táctil: desliza el dedo a izquierda o derecha.</p>
+  </div>
+</div>
+
+<div class="negro" id="negro" hidden aria-label="Pantalla en negro. Pulsa B o Esc para volver."></div>
+
+<noscript>
+  <div class="averia panel">
+    <div class="averia__cuerpo">
+      <p class="rotulo rotulo--ambar">Sin JavaScript no hay clase</p>
+      <p>Las diapositivas se dibujan con JavaScript. Actívalo en el navegador y vuelve a cargar la página.</p>
+    </div>
+  </div>
+</noscript>
+
+<script src="js/nucleo.js"></script>
+<script src="js/iconos.js"></script>
+<script src="js/sonido.js"></script>
+<script src="js/lluvia.js"></script>
+<script src="js/demos/corpus.js"></script>
+<script src="js/demos/red.js"></script>
+<script src="js/demos/tokens.js"></script>
+<script src="js/demos/siguiente.js"></script>
+<script src="clases/indice.js"></script>
+<script src="js/pase.js"></script>
+</body>
+</html>
