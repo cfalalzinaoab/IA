@@ -330,5 +330,13 @@
     return mandos;
   }
 
-  NAVE.lluvia = { crear: crear };
+  // El visor 3D (visor3d.js) no inventa otro alfabeto: pide esta misma lámina
+  // y la convierte en textura, para que la lluvia en tres dimensiones escriba
+  // exactamente las mismas letras que la de dos.
+  NAVE.lluvia = {
+    crear: crear,
+    lamina: pintarLamina,
+    GLIFOS: TOTAL,          // letras inventadas + dígitos
+    CONEJO: CONEJO          // la casilla del conejo, la última
+  };
 })();

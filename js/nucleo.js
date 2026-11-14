@@ -11,13 +11,14 @@
      NAVE.descifrar()             un texto que se resuelve glifo a glifo
      NAVE.teclear()               un texto que se escribe solo
      NAVE.bus                     avisos entre piezas que no se conocen
+     NAVE.ir()                    cambiar de página apagando el tubo
      NAVE.clase() / NAVE.indice() donde se apuntan las clases al cargarse
    ========================================================================== */
 (function () {
   'use strict';
 
   var NAVE = window.NAVE = window.NAVE || {};
-  NAVE.version = '1.0';
+  NAVE.version = '2.0';
   NAVE.nombre = 'NODRIZA';
 
   /* ---------- memoria ---------------------------------------------------- */
@@ -322,4 +323,63 @@
   if (NAVE.memoria.leer('modo-codigo', false)) {
     document.documentElement.classList.add('modo-codigo');
   }
+
+  /* ---------- ir de una página a otra ------------------------------------ */
+  // El tubo se apaga (dos cortinas se cierran sobre una raya y la raya se
+  // encoge), se cambia de página, y la siguiente lo enciende al llegar.
+  // Vale para todos los enlaces entre las tres páginas de la nave: se
+  // interceptan aquí, una sola vez. Con «reducir movimiento» se va sin más.
+
+  function capaTubo(clase) {
+    var capa = NAVE.el('div', { class: 'tubo-capa ' + clase, 'aria-hidden': 'true' },
+      NAVE.el('div', { class: 'tubo-capa__linea' }));
+    document.body.appendChild(capa);
+    return capa;
+  }
+  function quitarCapas() {
+    var capas = document.querySelectorAll('.tubo-capa');
+    for (var i = 0; i < capas.length; i++) capas[i].parentNode.removeChild(capas[i]);
+  }
+
+  var saliendo = false;
+  NAVE.ir = function (ruta) {
+    if (saliendo) return;
+    if (NAVE.calma) { window.location.href = ruta; return; }
+    saliendo = true;
+    NAVE.sesion.guardar('encender', true);
+    capaTubo('tubo-capa--apaga');
+    if (NAVE.sonido && NAVE.sonido.apagado) NAVE.sonido.apagado();
+    setTimeout(function () { window.location.href = ruta; }, 470);
+  };
+
+  function encender() {
+    if (!NAVE.sesion.leer('encender', false)) return;
+    NAVE.sesion.guardar('encender', false);
+    if (NAVE.calma) return;
+    var capa = capaTubo('tubo-capa--enciende');
+    setTimeout(function () { if (capa.parentNode) capa.parentNode.removeChild(capa); }, 720);
+  }
+  if (document.body) encender(); else document.addEventListener('DOMContentLoaded', encender);
+
+  // Si el navegador devuelve esta página de su memoria (el botón «atrás»),
+  // no puede volver con el tubo apagado.
+  window.addEventListener('pageshow', function (evento) {
+    if (!evento.persisted) return;
+    saliendo = false;
+    quitarCapas();
+    NAVE.sesion.guardar('encender', false);
+  });
+
+  var PAGINAS = /^(index|clase|laboratorio)\.html(\?|#|$)/;
+  document.addEventListener('click', function (evento) {
+    if (evento.defaultPrevented || evento.button !== 0) return;
+    if (evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;   // «abrir en otra pestaña» sigue siendo del navegador
+    var enlace = evento.target.closest ? evento.target.closest('a[href]') : null;
+    if (!enlace || enlace.target || enlace.hasAttribute('download')) return;
+    var destino = enlace.getAttribute('href');
+    if (!PAGINAS.test(destino)) return;
+    evento.preventDefault();
+    NAVE.bus.emitir('salida', destino);
+    NAVE.ir(enlace.href);
+  });
 })();

@@ -203,6 +203,16 @@
       tono(620, 0.34, { onda: 'triangle', hasta: 880, volumen: 0.09 });
       tono(880, 0.3, { onda: 'triangle', hasta: 520, volumen: 0.08, espera: 0.3 });
     },
+    // el tubo que se apaga: un tono que se desploma
+    apagado: function () {
+      tono(520, 0.32, { onda: 'sawtooth', hasta: 45, volumen: 0.07 });
+      chasquido(0.05, 0.05, 700);
+    },
+    // la onda que suelta el visor al tocarlo
+    onda: function () {
+      tono(140, 0.5, { onda: 'sine', hasta: 620, volumen: 0.08 });
+      tono(880, 0.09, { onda: 'sine', volumen: 0.05, espera: 0.02 });
+    },
     telefono: function () {
       for (var i = 0; i < 2; i++) {
         tono(480, 0.4, { onda: 'sine', volumen: 0.07, espera: i * 0.9 });

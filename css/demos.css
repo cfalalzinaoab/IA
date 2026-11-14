@@ -32,11 +32,14 @@ span.mando__titulo { display: block; }
   margin: 0;
   padding: .6em .8em;
   border: 1px solid var(--linea);
+  border-radius: var(--radio);
   background: var(--negro);
+  box-shadow: inset 0 .25em .7em rgba(0, 0, 0, .8);
 }
 .demo__lecturas dt {
   grid-row: 1;
-  font-size: .62em; letter-spacing: .14em; text-transform: uppercase;
+  font-family: var(--mono); font-weight: 500;
+  font-size: .6em; letter-spacing: .16em; text-transform: uppercase;
   color: var(--hueso-3);
 }
 .demo__lecturas dd {
@@ -57,11 +60,13 @@ span.mando__titulo { display: block; }
 .red__plano {
   aspect-ratio: 1;
   border: 1px solid var(--linea-viva);
+  border-radius: var(--radio);
+  box-shadow: inset 0 1px 0 var(--canto-luz), 0 1em 2em -1.2em #000, 0 0 2em rgba(93, 255, 155, .06);
   cursor: crosshair;
   touch-action: manipulation;
 }
 .red__derecha { display: flex; flex-direction: column; gap: .8em; min-width: 0; }
-.red__esquema { border: 1px solid var(--linea); background: var(--negro); }
+.red__esquema { border: 1px solid var(--linea); border-radius: var(--radio); background: var(--negro); box-shadow: inset 0 .25em .7em rgba(0, 0, 0, .8); }
 .red__curva { background: var(--negro); }
 
 @media (max-width: 760px) {
@@ -71,7 +76,7 @@ span.mando__titulo { display: block; }
 /* ---------- El troceador -------------------------------------------------- */
 
 .tokens { display: flex; flex-direction: column; gap: 1em; }
-.tokens__texto { resize: vertical; min-height: 4.4em; line-height: 1.45; }
+.tokens__texto { resize: vertical; min-height: 4.4em; line-height: 1.45; font-size: 1.05em; }
 .tokens__medio {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1em 1.6em; align-items: end;
 }
@@ -81,14 +86,19 @@ span.mando__titulo { display: block; }
   min-height: 6.2em;
   padding: .9em;
   border: 1px solid var(--linea-viva);
+  border-radius: var(--radio);
   background: var(--negro);
+  box-shadow: inset 0 .25em .8em rgba(0, 0, 0, .8);
 }
+/* los trozos van en monoespaciada: aquí importa ver cada letra y cada espacio */
 .trozo {
   display: inline-flex; flex-direction: column; align-items: center;
   padding: .12em .42em;
   border: 1px solid;
   border-radius: var(--radio);
-  font-size: 1.12em; line-height: 1.35;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 .1em 0 rgba(0, 0, 0, .5);
+  font-family: var(--mono);
+  font-size: 1.1em; line-height: 1.35;
   white-space: pre;
 }
 .trozo--0 { color: var(--fosforo);  border-color: var(--fosforo-3); background: rgba(93, 255, 155, .09); }
@@ -105,7 +115,8 @@ span.mando__titulo { display: block; }
 }
 .tokens__fusiones {
   margin-top: .5em;
-  font-size: .88em; line-height: 1.7;
+  font-family: var(--mono);
+  font-size: .84em; line-height: 1.75;
   min-height: 8.5em;
 }
 .tokens__par {
@@ -133,8 +144,10 @@ span.mando__titulo { display: block; }
   min-height: 5.6em;
   padding: .7em .9em;
   border: 1px solid var(--linea-viva);
+  border-radius: var(--radio);
   background: var(--negro);
-  font-size: 1.3em; line-height: 1.4;
+  box-shadow: inset 0 .25em .8em rgba(0, 0, 0, .8);
+  font-size: 1.36em; line-height: 1.4;
   overflow-wrap: anywhere;
 }
 .siguiente__antes { color: var(--hueso-2); }
@@ -156,18 +169,21 @@ span.mando__titulo { display: block; }
   padding: .4em .7em;
   border: 1px solid var(--linea-viva);
   border-radius: var(--radio);
-  background: var(--casco-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(0, 0, 0, .12)), var(--casco-2);
+  box-shadow: inset 0 1px 0 var(--canto-luz), 0 .12em 0 rgba(0, 0, 0, .55);
   color: var(--hueso);
   text-align: left;
+  font-family: var(--texto);
   font-size: 1em;
-  transition: border-color .12s, background-color .12s;
+  transition: border-color .12s, background-color .12s, transform .12s;
 }
-.candidata:hover, .candidata:focus-visible { border-color: var(--ambar); background: var(--casco-3); }
+.candidata:hover, .candidata:focus-visible { border-color: var(--ambar); background-color: var(--casco-3); transform: translateX(.2em); }
 .candidata__palabra { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.candidata__barra { height: .7em; background: var(--negro); border: 1px solid var(--linea); }
+.candidata__barra { height: .7em; background: var(--negro); border: 1px solid var(--linea); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .8); }
 .candidata__barra span {
   display: block; height: 100%;
   background: linear-gradient(90deg, var(--fosforo-3), var(--fosforo));
+  box-shadow: 0 0 .5em rgba(93, 255, 155, .5);
   transition: width .25s;
 }
 .candidata__p {

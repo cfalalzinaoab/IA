@@ -2,21 +2,32 @@
    PORTAL.JS · la portada cobra vida
    --------------------------------------------------------------------------
    Orden de las cosas:
-     1. se leen clases/indice.js (ya cargado) y, una a una, las clases que
+     1. se enciende el visor: en tres dimensiones si el navegador tiene
+        WebGL2 (visor3d.js), y si no, la lluvia plana de siempre (lluvia.js);
+     2. se leen clases/indice.js (ya cargado) y, una a una, las clases que
         nombra; la que falle se apunta como avería y no tumba a las demás;
-     2. se pintan las bahías, el laboratorio y el estado de la nave;
-     3. se monta la consola con sus órdenes;
-     4. arranque (una vez por sesión) y, al acabar, el título se descifra.
+     3. se pintan las bahías, el laboratorio y el estado de la nave;
+     4. se monta la consola con sus órdenes;
+     5. arranque (una vez por sesión) y, al acabar, el título se descifra y
+        el núcleo aparece en el visor.
+
+   EL VISOR, DE FONDO. En pantallas grandes con ratón, el lienzo del visor se
+   suelta de su sección y pasa a ser el fondo fijo de la página entera
+   (html.visor-fondo): los paneles son cristal y la escena se ve detrás. Al
+   desplazar la página, la escena sube más despacio que el contenido y baja
+   la luz. En móvil el visor se queda en su marco: es más barato.
    ========================================================================== */
 (function () {
   'use strict';
   var NAVE = window.NAVE;
   var el = NAVE.el;
+  var raiz = document.documentElement;
 
   var catalogo = NAVE.catalogo || { curso: 'Inteligencia artificial', clases: [], proximas: [] };
   var ids = (catalogo.clases || []).map(String);
   var averiadas = [];
-  var lluvia = null;
+  var lluvia = null;       // los mandos del visor, sea el de 3D o el plano
+  var visor3d = null;      // lo mismo, pero solo si es el de 3D
   var consola = null;
 
   var APARATOS = [
@@ -24,6 +35,8 @@
     { id: 'tokens',    icono: 'tokens',  nombre: 'Troceador de texto',  texto: 'La máquina no lee palabras: lee trozos. Escribe algo y mira cómo lo parte.' },
     { id: 'siguiente', icono: 'palabra', nombre: 'La palabra siguiente', texto: 'Adivinar qué viene después, una y otra vez. Así escribe un modelo de lenguaje.' }
   ];
+
+  function dos(n) { return (n < 10 ? '0' : '') + n; }
 
   /* ---------- barra superior --------------------------------------------- */
 
@@ -48,10 +61,43 @@
   mandoSonido.addEventListener('click', function () { ponerSonido(!NAVE.sonido.encendido); });
   pintarMandoSonido();
 
-  /* ---------- la lluvia --------------------------------------------------- */
+  /* ---------- el visor ---------------------------------------------------- */
 
+  var seccionVisor = document.getElementById('visor');
   var lienzo = document.getElementById('lluvia');
+  var preferencia = NAVE.memoria.leer('visor', 'auto');     // auto | alta | media | baja | plano
   var llueve = NAVE.memoria.leer('lluvia', true);
+
+  if (preferencia !== 'plano' && NAVE.visor3d) {
+    visor3d = NAVE.visor3d.crear(lienzo, {
+      conejo: true,
+      nucleo: false,                      // aparece al acabar el arranque
+      escalaNucleo: 0.76,
+      encuadreX: 0.5,
+      calidad: preferencia,
+      alProyectar: pintarHud,
+      // si ni a media resolución llega, se le quita el cristal a los paneles
+      alAgobio: function () { raiz.classList.add('sin-cristal'); }
+    });
+    if (!visor3d) {
+      // un lienzo que ya ha probado WebGL no sirve para pintar en 2D: se cambia por otro
+      var repuesto = lienzo.cloneNode(false);
+      lienzo.parentNode.replaceChild(repuesto, lienzo);
+      lienzo = repuesto;
+    }
+  }
+  lluvia = visor3d || NAVE.lluvia.crear(lienzo, { celda: 20, conejo: true });
+  raiz.classList.toggle('visor-3d', !!visor3d);
+
+  // ¿Cabe el visor de fondo? Pantalla ancha, ratón y una máquina que pueda.
+  var consultaFondo = window.matchMedia ? window.matchMedia('(min-width: 1081px) and (hover: hover) and (pointer: fine)') : { matches: false };
+  function ponerFondo() {
+    var si = !!visor3d && llueve && consultaFondo.matches && preferencia !== 'baja';
+    raiz.classList.toggle('visor-fondo', si);
+    if (visor3d) visor3d.velo(si ? 0.88 : 0, 0.7);
+    alDesplazar();
+  }
+  if (consultaFondo.addEventListener) consultaFondo.addEventListener('change', ponerFondo);
 
   function ponerLluvia(valor) {
     llueve = !!valor;
@@ -60,26 +106,85 @@
     if (llueve) lluvia.seguir(); else lluvia.parar();
     mandoLluvia.setAttribute('aria-pressed', llueve ? 'true' : 'false');
     mandoLluvia.innerHTML = NAVE.icono('lluvia') +
-      '<span class="solo-lector">Lluvia de código ' + (llueve ? 'encendida' : 'apagada') + '</span>';
+      '<span class="solo-lector">Visor ' + (llueve ? 'encendido' : 'apagado') + '</span>';
+    ponerFondo();
     pintarLecturas();
   }
-  lluvia = NAVE.lluvia.crear(lienzo, { celda: 20, conejo: true });
   mandoLluvia.addEventListener('click', function () { ponerLluvia(!llueve); NAVE.sonido.rele(); });
 
-  /* ---------- las lecturas del visor ------------------------------------- */
-  // Números que se mueven en las esquinas. No miden nada: son el latido.
+  /* ---------- lo que el visor superpone a la imagen ---------------------- */
 
-  var coordenadas = document.getElementById('visor-coordenadas');
-  var lectura = document.getElementById('visor-lectura');
-  function tresCifras(n) { return ('00' + n).slice(-3); }
-  function latir() {
-    var t = Date.now() / 1000;
-    coordenadas.textContent = 'RUMBO ' + tresCifras(Math.round(137 + Math.sin(t / 7) * 9)) +
-      '° · DERIVA ' + (Math.sin(t / 3) * 0.4).toFixed(2);
-    lectura.textContent = 'FLUJO ' + (1180 + Math.round(Math.sin(t / 2) * 60 + Math.random() * 14)) + ' GLIFOS/S';
+  var hud = {
+    mira: document.getElementById('hud-mira'),
+    cinta: document.getElementById('hud-cinta'),
+    dato: document.getElementById('hud-dato'),
+    capas: document.getElementById('hud-capas').getElementsByTagName('i'),
+    capa: document.getElementById('hud-capa'),
+    coordenadas: document.getElementById('visor-coordenadas'),
+    lectura: document.getElementById('visor-lectura'),
+    lado: 0, capaViva: -1, cuenta: 0, datoPuesto: false
+  };
+  // Con el lienzo de fondo, sus coordenadas son las de la ventana y las de
+  // la mira son las de la sección: este es el desfase entre unas y otras.
+  var desfase = { x: 0, y: 0 };
+
+  function alDesplazar() {
+    var a = lienzo.getBoundingClientRect(), b = seccionVisor.getBoundingClientRect();
+    desfase.x = a.left - b.left;
+    desfase.y = a.top - b.top;
+    if (visor3d) {
+      // de fondo, la escena acompaña al desplazamiento; encajado, se va con su sección
+      visor3d.desplazar(raiz.classList.contains('visor-fondo') ? window.scrollY / Math.max(1, window.innerHeight) : 0);
+    }
   }
-  latir();
-  if (!NAVE.calma) setInterval(latir, 900);
+  window.addEventListener('scroll', alDesplazar, { passive: true });
+  window.addEventListener('resize', alDesplazar);
+
+  function grados(radianes) { return radianes * 180 / Math.PI; }
+
+  // Lo llama el visor 3D en cada cuadro, con dónde ha caído el núcleo.
+  function pintarHud(d) {
+    hud.mira.style.transform = 'translate(' + (d.x + desfase.x).toFixed(1) + 'px,' + (d.y + desfase.y).toFixed(1) + 'px)';
+    var lado = Math.round(d.r * 2.14);
+    if (Math.abs(lado - hud.lado) > 1) {
+      hud.lado = lado;
+      hud.mira.style.width = hud.mira.style.height = lado + 'px';
+      hud.mira.style.margin = (-lado / 2) + 'px 0 0 ' + (-lado / 2) + 'px';
+    }
+    hud.mira.style.opacity = Math.max(0, d.alfa * d.alfa * (1 - Math.min(1, d.desplazado * 2.6))).toFixed(2);
+
+    // la capa por la que va la señal (0,2 de ola por capa; al final, un respiro)
+    var capa = d.ola < 0.8 ? Math.floor(d.ola * 5) : -1;
+    if (capa !== hud.capaViva) {
+      hud.capaViva = capa;
+      for (var i = 0; i < hud.capas.length; i++) hud.capas[i].classList.toggle('viva', i === capa || i === capa + 1);
+      hud.capa.textContent = capa < 0 ? 'en reposo' : 'capa ' + (capa + 1) + ' › ' + (capa + 2);
+    }
+    if (!hud.datoPuesto) {
+      hud.datoPuesto = true;
+      hud.dato.textContent = d.neuronas + ' neuronas · ' + d.conexiones + ' conexiones';
+    }
+
+    var rumbo = ((137 + grados(d.rumbo)) % 360 + 360) % 360;
+    hud.cinta.style.backgroundPositionX = (-(rumbo * 5) % 50).toFixed(1) + 'px';
+    if (++hud.cuenta % 8 === 0) {
+      hud.coordenadas.textContent = 'RUMBO ' + ('00' + Math.round(rumbo)).slice(-3) + '° · CABECEO ' +
+        grados(d.cabeceo).toFixed(1).replace('.', ',') + '°';
+      hud.lectura.textContent = 'ALTURA ' + d.altura.toFixed(1).replace('.', ',') + ' · ' + Math.round(d.fps) + ' CUADROS/S';
+    }
+  }
+
+  // Sin 3D, las esquinas llevan unos números que no miden nada: son el latido.
+  if (!visor3d) {
+    var latir = function () {
+      var t = Date.now() / 1000;
+      hud.coordenadas.textContent = 'RUMBO ' + ('00' + Math.round(137 + Math.sin(t / 7) * 9)).slice(-3) +
+        '° · DERIVA ' + (Math.sin(t / 3) * 0.4).toFixed(2);
+      hud.lectura.textContent = 'FLUJO ' + (1180 + Math.round(Math.sin(t / 2) * 60 + Math.random() * 14)) + ' GLIFOS/S';
+    };
+    latir();
+    if (!NAVE.calma) setInterval(latir, 900);
+  }
 
   /* ---------- textos del curso ------------------------------------------- */
 
@@ -149,8 +254,6 @@
     ]);
   }
 
-  function dos(n) { return (n < 10 ? '0' : '') + n; }
-
   function pintarBahias() {
     var caja = document.getElementById('bahias');
     caja.textContent = '';
@@ -166,6 +269,7 @@
     // siempre queda alguna bahía libre a la vista: la nave tiene sitio
     var libres = Math.max(1, 3 - cuenta);
     for (var i = 0; i < libres; i++) caja.appendChild(bahiaVacia(dos(cuenta + i)));
+    NAVE.relieve.todos('a.modulo', caja);
 
     var listas = ids.filter(function (id) { return NAVE.clases[id]; }).length;
     document.getElementById('archivo-codigo').textContent =
@@ -195,13 +299,20 @@
         el('span', { class: 'aparato__texto' }, aparato.texto)
       ]));
     });
+    NAVE.relieve.todos('.aparato', caja, { inclinacion: 6, giro: 7 });
   })();
 
   /* ---------- el estado de la nave --------------------------------------- */
 
+  function nombreVisor() {
+    if (!llueve) return 'APAGADO';
+    if (!visor3d) return 'PLANO';
+    return '3D · ' + visor3d.info().calidad.split(' ')[0].toUpperCase();
+  }
+
   function pintarLecturas() {
     var caja = document.getElementById('lecturas');
-    if (!caja) return;
+    if (!caja || !lluvia) return;
     var listas = ids.filter(function (id) { return NAVE.clases[id]; });
     var diapos = listas.reduce(function (suma, id) { return suma + NAVE.clases[id].diapos.length; }, 0);
     var ultima = ultimaClase();
@@ -210,8 +321,8 @@
       ['Clases a bordo', dos(listas.length)],
       ['Diapositivas', String(diapos)],
       ['Última carga', ultima && ultima.fecha ? NAVE.fechaCorta(ultima.fecha) : '—'],
+      ['Visor', nombreVisor(), !llueve || !visor3d],
       ['Sonido', NAVE.sonido.encendido ? 'SÍ' : 'NO', !NAVE.sonido.encendido],
-      ['Lluvia', llueve ? 'SÍ' : 'NO', !llueve],
       ['Modo', modo === 'codigo' ? 'CÓDIGO' : modo === 'sala-blanca' ? 'SALA BLANCA' : 'PUENTE', modo !== 'puente']
     ];
     if (averiadas.length) filas.push(['Averías', String(averiadas.length), true]);
@@ -226,7 +337,7 @@
   (function pintarSenal() {
     var caja = document.getElementById('senal');
     var tirar = NAVE.azar(42);
-    for (var i = 0; i < 28; i++) {
+    for (var i = 0; i < 30; i++) {
       var barra = el('span');
       barra.style.animationDelay = (-tirar() * 1.8).toFixed(2) + 's';
       barra.style.animationDuration = (1.1 + tirar() * 1.6).toFixed(2) + 's';
@@ -240,7 +351,8 @@
 
   function irA(ruta) {
     NAVE.sonido.ok();
-    setTimeout(function () { window.location.href = ruta; }, 320);
+    NAVE.bus.emitir('salida', ruta);
+    setTimeout(function () { NAVE.ir(ruta); }, 260);
   }
 
   consola.registrar('ayuda', {
@@ -311,11 +423,47 @@
       consola.decir('SONIDO ' + (NAVE.sonido.encendido ? 'ENCENDIDO' : 'APAGADO'), 'ok');
     }
   });
-  consola.registrar('lluvia', {
-    ayuda: 'lluvia si | no — el código del visor',
+
+  var CALIDADES = ['auto', 'alta', 'media', 'baja', 'plano'];
+  consola.registrar('visor', {
+    alias: ['lluvia', 'calidad', 'grafica', 'graficos'],
+    ayuda: 'visor si | no | alta | media | baja | auto | plano — el visor y su calidad',
     hacer: function (argumentos) {
-      ponerLluvia(siNo(argumentos, llueve));
-      consola.decir('LLUVIA ' + (llueve ? 'ENCENDIDA' : 'APAGADA'), 'ok');
+      var pedido = argumentos[0] || '';
+      if (pedido === '2d') pedido = 'plano';
+      if (pedido === '3d') pedido = 'auto';
+      if (CALIDADES.indexOf(pedido) >= 0) {
+        NAVE.memoria.guardar('visor', pedido);
+        consola.decir('VISOR EN «' + pedido.toUpperCase() + '». Reiniciando la interfaz…', 'ok');
+        setTimeout(function () { window.location.reload(); }, 700);
+        return;
+      }
+      if (pedido) {
+        ponerLluvia(siNo(argumentos, llueve));
+        consola.decir('VISOR ' + (llueve ? 'ENCENDIDO' : 'APAGADO'), 'ok');
+        return;
+      }
+      if (!visor3d) {
+        consola.recitar([
+          'VISOR: lluvia plana, en dos dimensiones.',
+          NAVE.visor3d && NAVE.visor3d.disponible()
+            ? 'Para el visor en 3D: visor auto'
+            : 'Este navegador no tiene WebGL2: no puede con el visor en 3D.'
+        ], 'ambar', 60);
+        return;
+      }
+      var i = visor3d.info();
+      consola.recitar([
+        'VISOR EN TRES DIMENSIONES',
+        '  calidad ....... ' + i.calidad,
+        '  tarjeta ....... ' + i.tarjeta,
+        '  lienzo ........ ' + i.lienzo + ' px',
+        '  escena ........ ' + i.escena,
+        '  ritmo ......... ' + i.fps + ' cuadros/s',
+        '  lluvia ........ ' + i.columnas + ' columnas, ' + i.glifos + ' glifos',
+        '  núcleo ........ ' + i.neuronas + ' neuronas, ' + i.conexiones + ' conexiones',
+        'Para cambiar: visor alta | media | baja | auto | plano'
+      ], null, 30);
     }
   });
 
@@ -328,8 +476,8 @@
         'INFORME DE SISTEMAS · ' + NAVE.fecha() + ' ' + NAVE.hora(),
         '  ARCHIVO ......... ' + listas + ' clase' + (listas === 1 ? '' : 's') + ' a bordo',
         '  AVERÍAS ......... ' + (averiadas.length ? averiadas.join(', ') : 'ninguna'),
+        '  VISOR ........... ' + nombreVisor().toLowerCase(),
         '  SONIDO .......... ' + (NAVE.sonido.encendido ? 'sí' : 'no'),
-        '  LLUVIA .......... ' + (llueve ? 'sí' : 'no'),
         '  MODO ............ ' + NAVE.modo.actual(),
         '  CAFETERA ........ sin respuesta'
       ], null, 40);
@@ -349,8 +497,8 @@
       consola.recitar([
         NAVE.nombre + ' 7000 · interfaz de a bordo v' + NAVE.version,
         'Las clases de ' + (catalogo.curso || 'IA') + ', diapositiva a diapositiva.',
-        'HTML, CSS y JavaScript escritos a mano. Sin servidor, sin rastreadores.',
-        'Las fuentes (Michroma, IBM Plex Mono, VT323) son libres y van a bordo.'
+        'HTML, CSS, JavaScript y WebGL escritos a mano. Sin servidor, sin rastreadores.',
+        'Las fuentes (Saira, IBM Plex y VT323) son libres y van a bordo.'
       ], null, 60);
     }
   });
@@ -366,7 +514,8 @@
     ayuda: 'reiniciar — repite el arranque',
     hacer: function () {
       consola.decir('REINICIANDO…', 'ambar');
-      NAVE.arranque.lanzar({ forzar: true, registros: ids.length }).then(presentarTitulo);
+      if (visor3d) visor3d.nucleo(false);
+      NAVE.arranque.lanzar({ forzar: true, registros: ids.length }).then(presentar);
     }
   });
 
@@ -382,11 +531,21 @@
     document.getElementById('consola').scrollIntoView({ block: 'nearest', behavior: NAVE.calma ? 'auto' : 'smooth' });
   });
 
+  // Al salir hacia otra página, el visor da el salto mientras el tubo se apaga.
+  NAVE.bus.oir('salida', function () {
+    if (visor3d) visor3d.salto(null, 520);
+  });
+
   /* ---------- puesta en marcha ------------------------------------------- */
 
-  function presentarTitulo() {
+  // El título se resuelve y el núcleo se materializa con una onda.
+  function presentar() {
     NAVE.descifrar(tituloUno, lineaUno, { duracion: 900 });
     if (lineaDos) NAVE.descifrar(tituloDos, lineaDos, { duracion: 1300 });
+    if (visor3d) {
+      visor3d.nucleo(true);
+      setTimeout(function () { visor3d.onda(undefined, undefined, 1.2); }, 650);
+    }
   }
 
   function cargarClases() {
@@ -407,7 +566,7 @@
     pintarLecturas();
     return arrancado;
   }).then(function (huboArranque) {
-    presentarTitulo();
+    presentar();
     NAVE.sonido.zumbido(true);
     var listas = ids.length - averiadas.length;
     consola.recitar([

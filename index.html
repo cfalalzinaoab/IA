@@ -25,36 +25,70 @@
   <span class="barra__reloj" id="reloj" aria-label="Fecha y hora de a bordo"></span>
   <div class="barra__mandos">
     <button class="boton boton--mini boton--icono" id="mando-sonido" type="button" aria-pressed="false" title="Sonido de la nave"></button>
-    <button class="boton boton--mini boton--icono" id="mando-lluvia" type="button" aria-pressed="true" title="Lluvia de código"></button>
+    <button class="boton boton--mini boton--icono" id="mando-lluvia" type="button" aria-pressed="true" title="Visor"></button>
   </div>
 </header>
 
 <main class="puente">
 
-  <div class="puente__principal">
+  <!-- EL VISOR
+       Con WebGL2 es una escena en tres dimensiones (js/visor3d.js); sin él,
+       la lluvia plana de siempre (js/lluvia.js). En pantallas grandes el
+       lienzo se suelta de esta sección y pasa a ser el fondo fijo de toda la
+       página (html.visor-fondo): los paneles de abajo flotan sobre la escena. -->
+  <section class="visor" id="visor" aria-labelledby="titulo-curso">
+    <canvas class="visor__lluvia" id="lluvia" aria-hidden="true"></canvas>
+    <div class="visor__velo" aria-hidden="true"></div>
 
-    <!-- EL VISOR: la lluvia tras el cristal y el nombre del curso -->
-    <section class="visor panel" aria-labelledby="titulo-curso">
-      <canvas class="visor__lluvia" id="lluvia" aria-hidden="true"></canvas>
-      <div class="visor__velo" aria-hidden="true"></div>
-      <div class="visor__esquina visor__esquina--ai micro" aria-hidden="true">
+    <!-- lo que el visor superpone a la imagen: lecturas, rumbo y la mira del núcleo -->
+    <div class="visor__hud" id="hud" aria-hidden="true">
+      <div class="hud__esquina hud__esquina--ai micro">
         <span class="piloto piloto--rojo piloto--late"></span> Visor 01 · señal en directo
       </div>
-      <div class="visor__esquina visor__esquina--ad micro" id="visor-coordenadas" aria-hidden="true"></div>
-      <div class="visor__esquina visor__esquina--bd micro" id="visor-lectura" aria-hidden="true"></div>
-      <div class="visor__contenido">
-        <p class="micro visor__ante" id="visor-ante">Curso</p>
-        <h1 class="visor__titulo rotulo" id="titulo-curso">
-          <span class="visor__linea" id="titulo-1">Inteligencia</span>
-          <span class="visor__linea visor__linea--ambar" id="titulo-2">artificial</span>
-        </h1>
-        <p class="visor__lema" id="visor-lema"></p>
-        <div class="visor__acciones">
-          <a class="boton boton--ambar" id="accion-ultima" href="#clases">Ir a las clases</a>
-          <a class="boton" href="laboratorio.html">Laboratorio</a>
+      <div class="hud__esquina hud__esquina--ad micro cifras" id="visor-coordenadas"></div>
+      <div class="hud__esquina hud__esquina--bd micro cifras" id="visor-lectura"></div>
+
+      <div class="hud__rumbo">
+        <div class="hud__cinta" id="hud-cinta"></div>
+        <span class="hud__fiel"></span>
+      </div>
+
+      <div class="hud__mira" id="hud-mira">
+        <svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet" focusable="false">
+          <g class="hud__gira">
+            <circle cx="100" cy="100" r="97" stroke-dasharray="1.500 7"/>
+          </g>
+          <g class="hud__gira hud__gira--contra">
+            <path class="hud__arco" d="M100 9A91 91 0 0 1 178.800 54.500"/>
+            <path class="hud__arco" d="M100 191A91 91 0 0 1 21.200 145.500"/>
+          </g>
+          <path class="hud__corchete" d="M4 30V4H30M170 4H196V30M196 170V196H170M30 196H4V170"/>
+          <path class="hud__cruz" d="M100 0V10M100 190V200M0 100H10M190 100H200"/>
+        </svg>
+        <div class="hud__etiqueta">
+          <span class="hud__titulo">Núcleo de inferencia</span>
+          <span class="hud__dato cifras" id="hud-dato">—</span>
+          <span class="hud__capas" id="hud-capas"><i></i><i></i><i></i><i></i><i></i><b id="hud-capa">capa 1</b></span>
         </div>
       </div>
-    </section>
+    </div>
+
+    <div class="visor__contenido">
+      <p class="micro visor__ante" id="visor-ante">Curso</p>
+      <h1 class="visor__titulo" id="titulo-curso">
+        <span class="visor__linea visor__linea--fina" id="titulo-1">Inteligencia</span>
+        <span class="visor__linea visor__linea--gruesa" id="titulo-2">artificial</span>
+      </h1>
+      <p class="visor__lema" id="visor-lema"></p>
+      <div class="visor__acciones">
+        <a class="boton boton--ambar" id="accion-ultima" href="#clases">Ir a las clases</a>
+        <a class="boton" href="laboratorio.html">Laboratorio</a>
+      </div>
+      <p class="visor__pista micro" id="visor-pista">Arrastra el núcleo para girarlo · toca el cristal y mira qué pasa</p>
+    </div>
+  </section>
+
+  <div class="puente__principal">
 
     <!-- EL ARCHIVO: una bahía por clase -->
     <section class="archivo panel" id="clases" aria-labelledby="archivo-titulo">
@@ -127,6 +161,12 @@
 <script src="js/iconos.js"></script>
 <script src="js/sonido.js"></script>
 <script src="js/lluvia.js"></script>
+<script src="js/gl/matematica.js"></script>
+<script src="js/gl/gl.js"></script>
+<script src="js/gl/sombreadores.js"></script>
+<script src="js/gl/posproceso.js"></script>
+<script src="js/visor3d.js"></script>
+<script src="js/relieve.js"></script>
 <script src="js/consola.js"></script>
 <script src="js/huevos.js"></script>
 <script src="js/arranque.js"></script>

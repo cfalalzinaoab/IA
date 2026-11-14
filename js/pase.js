@@ -15,6 +15,12 @@
      · presentador  otra ventana con la diapositiva de ahora, la que viene,
                     las notas y un cronómetro (clase.html?c=03&presentador=1).
 
+   EL FONDO. En las diapositivas de ambiente (portada, sección, cita y
+   cierre) se ve detrás el visor: la escena 3D de visor3d.js si el navegador
+   tiene WebGL2, y si no la lluvia plana. En el resto no se pinta, para que
+   nada compita con lo que hay que leer. Cada diapositiva de ambiente mira
+   la escena desde un sitio distinto, y la cámara viaja de uno a otro.
+
    LOS PASOS. Una diapositiva puede desvelarse por partes: cada trozo lleva
    data-paso="n" y «avanzar» sube el paso antes de cambiar de diapositiva.
    Al volver hacia atrás se llega a la anterior con todo ya desvelado.
@@ -362,10 +368,27 @@
     contenedor.appendChild(raiz);
     if (vivo) NAVE.reloj(reloj, true);
 
-    var lluvia = null;
+    var lluvia = null, tresD = null;
     if (lienzo) {
-      lluvia = NAVE.lluvia.crear(lienzo, { celda: 26, velo: 0.07 });
+      var preferencia = NAVE.memoria.leer('visor', 'auto');
+      if (preferencia !== 'plano' && NAVE.visor3d) {
+        tresD = NAVE.visor3d.crear(lienzo, {
+          calidad: preferencia, nucleo: false,
+          escalaNucleo: 0.72, encuadreX: 0.56, vineta: 0.3, curvatura: 0.02
+        });
+        if (!tresD) {
+          // un lienzo que ya probó WebGL no sirve para 2D: se cambia por otro
+          var repuesto = lienzo.cloneNode(false);
+          lienzo.parentNode.replaceChild(repuesto, lienzo);
+          lienzo = repuesto;
+        }
+      }
+      lluvia = tresD || NAVE.lluvia.crear(lienzo, { celda: 26, velo: 0.07 });
+      raiz.classList.toggle('escenario--3d', !!tresD);
     }
+    // desde dónde se mira la escena en cada diapositiva de ambiente
+    var VISTA_DE = { portada: 0, cita: 2, cierre: 4 };
+    var VISTAS_DE_SECCION = [1, 3, 2, 4];
 
     var actual = null;      // {i, d, pintor, nodo, paso}
     var tecleo = null;      // el tecleo en marcha, si lo hay
@@ -381,12 +404,23 @@
     if (window.ResizeObserver) new ResizeObserver(ajustar).observe(contenedor);
     window.addEventListener('resize', ajustar);
 
-    function salir() {
+    // La que se va no desaparece de golpe: se aleja girando (pase.css) y se
+    // quita cuando ha terminado. En las miniaturas, o con «reducir
+    // movimiento», sí se quita al momento.
+    function salir(haciaAtras) {
       if (!actual) return;
       if (tecleo) { tecleo.cortar(); tecleo = null; }
       if (actual.pintor.alSalir) actual.pintor.alSalir(actual.nodo, actual.d);
-      if (actual.nodo.parentNode) actual.nodo.parentNode.removeChild(actual.nodo);
+      var nodo = actual.nodo;
       actual = null;
+      if (!vivo || NAVE.calma) {
+        if (nodo.parentNode) nodo.parentNode.removeChild(nodo);
+        return;
+      }
+      nodo.classList.remove('diapo--vuelve');
+      nodo.classList.add(haciaAtras ? 'diapo--sale-atras' : 'diapo--sale');
+      nodo.setAttribute('aria-hidden', 'true');
+      setTimeout(function () { if (nodo.parentNode) nodo.parentNode.removeChild(nodo); }, 480);
     }
 
     // Si lo escrito no cabe en el escenario, se le baja la letra de dos en dos
@@ -434,7 +468,26 @@
       cabSeccion.textContent = d.tipo === 'seccion' ? '' : seccionDe(clase, i);
       var conLluvia = d.tipo === 'portada' || d.tipo === 'seccion' || d.tipo === 'cierre' || d.tipo === 'cita';
       raiz.classList.toggle('con-lluvia', conLluvia);
-      if (lluvia) { if (conLluvia && NAVE.memoria.leer('lluvia', true)) lluvia.seguir(); else lluvia.parar(); }
+      raiz.dataset.tipo = d.tipo;
+      if (lluvia) {
+        if (conLluvia && NAVE.memoria.leer('lluvia', true)) {
+          lluvia.seguir();
+          if (tresD) {
+            // el holograma sale en la portada y en el cierre, donde le queda sitio
+            tresD.nucleo(d.tipo === 'portada' || d.tipo === 'cierre');
+            var vista = VISTA_DE[d.tipo];
+            if (vista === undefined) {
+              var secciones = 0;
+              for (var s = 0; s < i; s++) if (clase.diapos[s].tipo === 'seccion') secciones++;
+              vista = VISTAS_DE_SECCION[secciones % VISTAS_DE_SECCION.length];
+            }
+            tresD.vista(vista);
+            tresD.fallo(0.5);
+          }
+        } else {
+          lluvia.parar();
+        }
+      }
       segmentos.forEach(function (segmento, k) {
         segmento.classList.toggle('hecho', k < i);
         segmento.classList.toggle('ahora', k === i);
@@ -461,7 +514,7 @@
     return {
       mostrar: function (i, paso, directo) {
         var haciaAtras = !!actual && i < actual.i;
-        if (!actual || actual.i !== i) { salir(); entrar(i, haciaAtras); directo = directo || paso > 0; }
+        if (!actual || actual.i !== i) { salir(haciaAtras); entrar(i, haciaAtras); directo = directo || paso > 0; }
         ponerPaso(paso, directo);
       },
       ajustar: ajustar,
@@ -672,7 +725,7 @@
       mandoSonido,
       mando('pantalla', 'Pantalla completa (F)', pantallaCompleta),
       mando('ayuda', 'Ayuda (?)', alternarAyuda),
-      mando('salir', 'Volver al puente', function () { window.location.href = 'index.html'; })
+      mando('salir', 'Volver al puente', function () { NAVE.ir('index.html'); })
     ].forEach(function (boton) { escenario.mandos.appendChild(boton); });
     pintarMandoSonido();
 

@@ -13,6 +13,9 @@
 </head>
 <body class="tubo lab">
 
+<!-- la escena del visor, quieta, de fondo (solo en pantallas grandes con WebGL2) -->
+<canvas class="lab__fondo" id="fondo" aria-hidden="true"></canvas>
+
 <header class="barra">
   <a class="barra__marca" href="index.html" aria-label="Volver al puente de mando">
     <span id="emblema"></span>
@@ -73,6 +76,13 @@
 <script src="js/nucleo.js"></script>
 <script src="js/iconos.js"></script>
 <script src="js/sonido.js"></script>
+<script src="js/lluvia.js"></script>
+<script src="js/gl/matematica.js"></script>
+<script src="js/gl/gl.js"></script>
+<script src="js/gl/sombreadores.js"></script>
+<script src="js/gl/posproceso.js"></script>
+<script src="js/visor3d.js"></script>
+<script src="js/relieve.js"></script>
 <script src="js/demos/corpus.js"></script>
 <script src="js/demos/red.js"></script>
 <script src="js/demos/tokens.js"></script>

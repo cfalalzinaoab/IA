@@ -5,6 +5,11 @@
    anterior: así la red no sigue entrenando a escondidas mientras se mira el
    troceador. La pestaña va en la dirección (#red, #tokens, #siguiente) para
    poder enlazar a cada aparato desde la portada, la consola o una clase.
+
+   DE FONDO va la misma escena 3D de la portada, pero QUIETA: se pinta, se
+   asienta un segundo y se queda como una fotografía. Aquí la máquina es
+   para los aparatos (la red entrena sin parar) y no se le quita. Quien
+   toque el fondo la verá moverse un par de segundos: es la onda de siempre.
    ========================================================================== */
 (function () {
   'use strict';
@@ -28,6 +33,23 @@
   mandoSonido.addEventListener('click', function () { NAVE.sonido.alternar(); pintarSonido(); });
   pintarSonido();
 
+  (function ponerFondo() {
+    var lienzo = document.getElementById('fondo');
+    var preferencia = NAVE.memoria.leer('visor', 'auto');
+    var grande = window.matchMedia && window.matchMedia('(min-width: 1081px) and (hover: hover) and (pointer: fine)').matches;
+    if (!lienzo || !NAVE.visor3d || !grande) return;
+    if (preferencia === 'plano' || preferencia === 'baja' || !NAVE.memoria.leer('lluvia', true)) return;
+    var fondo = NAVE.visor3d.crear(lienzo, {
+      calidad: preferencia, nucleo: false, encuadre: 'centro', vineta: 0.7,
+      alAgobio: function () { document.documentElement.classList.add('sin-cristal'); }
+    });
+    if (!fondo) return;
+    document.documentElement.classList.add('visor-fondo');
+    fondo.vista(3);            // adentrándose en el valle
+    fondo.atenuar(0.62);       // a media luz: aquí manda lo de delante
+    fondo.fotograma(45);       // se asienta un momento y se queda quieta
+  })();
+
   var pestanas = document.getElementById('pestanas');
   var botones = {};
   ORDEN.forEach(function (id, i) {
@@ -45,6 +67,7 @@
     ]);
     botones[id] = boton;
     pestanas.appendChild(boton);
+    NAVE.relieve.activar(boton, { inclinacion: 5, giro: 5 });
   });
 
   // flechas entre pestañas, como manda el teclado

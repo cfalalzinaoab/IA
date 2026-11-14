@@ -3,11 +3,11 @@
 La web donde se cuelgan las clases de IA: cada clase es un pase de
 diapositivas que se ve en el navegador, y al lado hay un laboratorio con tres
 aparatos para tocar. El diseño es un puente de mando de carguero espacial por
-el que llueve código.
+el que llueve código, y su visor principal es una escena en tres dimensiones.
 
-Es HTML, CSS y JavaScript escritos a mano. No hay servidor, ni compilación, ni
-bibliotecas, ni nada que llame a otra web: se abre `index.html` y funciona,
-también desde el disco.
+Es HTML, CSS, JavaScript y WebGL escritos a mano. No hay servidor, ni
+compilación, ni bibliotecas, ni nada que llame a otra web: se abre
+`index.html` y funciona, también desde el disco.
 
 ## Qué hay
 
@@ -20,10 +20,14 @@ también desde el disco.
 | `clases/clase-NN.js` | una clase: solo datos, sin diseño |
 | `img/clase-NN/` | las imágenes de esa clase |
 | `js/pase.js` | el motor de las diapositivas y los catorce tipos que sabe pintar |
+| `js/visor3d.js` | el visor en tres dimensiones: la escena, la cámara y lo que se puede tocar |
+| `js/gl/` | lo que el visor necesita por debajo: matemáticas, herramientas de WebGL2, sombreadores y posproceso |
+| `js/lluvia.js` | la lluvia plana (el visor de quien no tiene WebGL2) y el alfabeto inventado que comparten las dos |
+| `js/relieve.js` | las tarjetas que se inclinan bajo el ratón |
 | `js/demos/` | los aparatos y `corpus.js`, las frases de las que aprenden |
-| `js/` (el resto) | núcleo, sonido, lluvia, consola, arranque, iconos y huevos de pascua |
-| `css/nave.css` | el sistema de diseño: colores, fuentes, paneles, botones |
-| `fuentes/` | Michroma, IBM Plex Mono y VT323, con sus licencias (las tres son libres) |
+| `js/` (el resto) | núcleo, sonido, consola, arranque, iconos y huevos de pascua |
+| `css/nave.css` | el sistema de diseño: colores, tipografía, paneles con relieve, botones |
+| `fuentes/` | Saira, IBM Plex Sans, IBM Plex Mono y VT323, con sus licencias (todas libres) |
 | `herramientas/pptx_a_clase.py` | convierte un PowerPoint en un borrador de clase |
 
 ## Colgar una clase nueva
@@ -101,10 +105,42 @@ Un mando de presentaciones funciona sin más, porque envía `AvPág` y `RePág`.
 En un móvil de pie la clase se abre directamente en modo lectura. El sonido
 empieza siempre apagado.
 
+## El visor en tres dimensiones
+
+Lo que se ve tras el título de la portada no es un vídeo ni una imagen: se
+dibuja en directo con WebGL2. Al fondo, un paisaje alámbrico que avanza hacia
+la nave; en medio, la lluvia de código repartida en profundidad; delante, una
+red neuronal holográfica de cinco capas por la que pasa la señal. Encima va
+la óptica del tubo: resplandor, aberración cromática, grano, curvatura.
+
+Se puede tocar: arrastrar el núcleo lo gira, tocarlo dispara una ráfaga por
+la red, y tocar el cristal suelta una onda que enciende a su paso todas las
+celdas de la lluvia.
+
+- **En pantallas grandes** la escena es el fondo fijo de toda la portada y
+  los paneles son cristal esmerilado. **En el móvil** se queda en su marco.
+- **En las diapositivas** sale detrás de las portadas, secciones, citas y
+  cierres, cada una desde un punto de vista. En el resto no se pinta.
+- **En el laboratorio** es una imagen quieta: allí la máquina es para los
+  aparatos.
+- **Se cuida sola**: mide lo que tarda cada cuadro y baja o sube la
+  resolución; se para si la pestaña se esconde; con «reducir movimiento»
+  pinta una imagen fija. Sin WebGL2 se ve la lluvia plana de siempre.
+- **Se puede mandar** desde la consola: `visor` dice qué está haciendo, y
+  `visor alta`, `media`, `baja`, `auto` o `plano` lo fijan (se recuerda). Si
+  el proyector del aula va justo, `visor baja` o `visor plano`.
+
+## La tipografía
+
+Cuatro voces, cada una con su oficio: **Saira** (variable en peso y anchura)
+para títulos, rótulos y botones; **IBM Plex Sans** para todo lo que es una
+frase que leer; **IBM Plex Mono** para etiquetas y datos; **VT323** solo
+donde hay un tubo (consola, relojes, lecturas).
+
 ## La consola
 
 En la portada, la tecla `/` lleva a la consola. `ayuda` lista las órdenes:
-`clases`, `cargar 00`, `demo red`, `sonido si`, `lluvia no`, `estado`,
+`clases`, `cargar 00`, `demo red`, `sonido si`, `visor no`, `estado`,
 `reiniciar`…
 
 <details>
@@ -135,4 +171,7 @@ rama `main`, carpeta `/ (root)`. A partir de ahí, cada cambio que llega a
   web; se puede dar tal cual, cambiar o quitar de `indice.js`.
 - **Nada sale del navegador.** Lo que se escribe en la consola o en los
   aparatos se calcula ahí mismo. Lo único que se guarda, y en el propio
-  navegador, son las preferencias (sonido, lluvia) y los huevos encontrados.
+  navegador, son las preferencias (sonido, visor) y los huevos encontrados.
+- **El visor 3D pide una tarjeta gráfica normal.** En un ordenador de hace
+  diez años o sin aceleración irá a tirones o no arrancará; para eso están
+  `visor baja` y `visor plano`.
