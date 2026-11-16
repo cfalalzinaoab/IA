@@ -1,0 +1,589 @@
+<!doctype html>
+<!--
+Fonts i rigor (consultades el 13 d’octubre de 2026):
+Google Research, Jakob Uszkoreit, «Transformer: A Novel Neural Network Architecture for Language Understanding», 31-08-2017:
+https://research.google/blog/transformer-a-novel-neural-network-architecture-for-language-understanding/
+L’article original visualitza l’atenció del pronom anglès «it» en un encoder bidireccional de traducció. Aquest material adapta el cas «The animal didn’t cross the street because it was too tired/full» al català, i trasllada el focus a «cansat/ple» per explicar el context. Les línies, tots els pesos i els patrons de les matrius són inventats amb finalitat docent, normalitzats on hi ha antecedents; no són valors mesurats ni una promesa que un model concret resolgui sempre el cas.
+GPT-2 petit: OpenAI, src/model.py, default_hparams(): n_head=12, n_layer=12:
+https://github.com/openai/gpt-2/blob/master/src/model.py
+El codi attention_mask usa i >= j: el model real també permet l’atenció a la posició actual. La matriu docent omet explícitament la diagonal per centrar-se en les paraules anteriors, i ho indica en pantalla. La primera fila queda buida per aquesta simplificació. El càlcul paral·lel de totes les posicions descriu el processament del context; la generació de la continuació avança token a token.
+Els dotze fulls del pas 5 representen les dotze atencions d’una capa, no dotze capes. El pas 6 distingeix les dotze capes i amplia una capa en dotze mapes. Els quadrats dels fulls apilats són símbols, no dimensions del model. No es mostren xifres de cap model comercial actual.
+Material docent local, versió 2 (redisseny visual del 13-10-2026). Totes les dades il·lustratives es marquen en pantalla.
+v3 (13-10-2026): profunditat. Frase en tecles sobre safata, arcs com a tubs, quadrícula amb blocs, fulls amb gruix, pila de lloses; fons d’anells i arcs (window.fonsIA).
+v4 (13-10-2026): llum. Teclas activas («cansat»/«ple» azul, destino coral) con halo y destello al llegar; arcs com a neó (halo de 4 traços sense filtres: el principal coral intens,
+els altres blau tènue segons el pes; punta amb halo); bola d’origen com a LED blau; bloc «ple→carrer» de la matriu encès (marc coral de neó + destello); franja de llum que creua
+l’abanico de fulls una sola vegada i toll de llum blava; «Capa 6» treta amb halo blau, feix més lluminós i fletxa de profunditat de neó; fons amb boles i un anell amb llum pròpia.
+Res en bucle: les encesas només corren en avançar (body[data-dir]).
+Ritme (13-10-2026): carrega IA-S1-ritme.js al <head>; tot el moviment va més a poc a poc, pel mateix factor (LENT, a IA-S1-ritme.js).
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L’atenció: com usa el context</title><style>
+/* Base de l'escenari (la resta —colors, capçalera, peu, components— és a IA-S1-estil.css) */
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit;color:var(--ink)}button{cursor:pointer}
+
+/* ---------- v3 · Profunditat ----------
+   --lift: alçada d'una tecla aixecada (s'anima); --edge: color del cantell. Una sola llum, de dalt a l'esquerra. */
+@property --lift{syntax:"<length>";inherits:false;initial-value:0px}
+@property --edge{syntax:"<color>";inherits:true;initial-value:#D3CDBF}
+
+/* ---------- Passos 1 a 3: la frase com una fila de tecles sobre una safata enfonsada ---------- */
+#scene svg{position:absolute;left:0;top:0;overflow:visible}
+.sent{position:absolute;left:12px;width:1752px;display:flex;gap:8px}
+.sent::before{content:"";position:absolute;inset:-14px -12px -26px;border-radius:28px;
+  background:linear-gradient(180deg,#DDD7C9,#EAE6DA);
+  box-shadow:inset 0 5px 12px rgba(21,23,28,.20),inset 0 -2px 0 rgba(255,255,255,.75),0 1px 0 rgba(255,255,255,.7)}
+.w{position:relative;flex:1 1 auto;height:96px;display:grid;place-items:center;padding:0 10px;border-radius:18px;
+  --lift:0px;--edge:#D3CDBF;translate:0 calc(var(--lift) * -1);transform-origin:50% 100%;
+  background-color:#FDFCF8;background-image:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,0) 62%);
+  border:3px solid rgba(21,23,28,.10);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.85),inset 0 -2px 0 rgba(21,23,28,.05),
+    0 calc(9px + var(--lift)) 0 var(--edge),0 calc(11px + var(--lift)) 0 rgba(21,23,28,.10),
+    0 calc(24px + var(--lift) * 2) 26px -12px rgba(21,23,28,.42);
+  font-family:var(--font-display);font-size:56px;font-weight:600;letter-spacing:-.015em;line-height:1;white-space:nowrap}
+.w>*{grid-area:1/1}
+.w .t{transform-origin:50% 100%}
+.w .ph{visibility:hidden}
+.w.src{background-color:#E4EAFF;border-color:#2F55D4;--edge:#7F98EA;--lift:8px}
+.w.dst{background-color:#FFE5DC;border-color:#D2462A;--edge:#E39A82;--lift:8px}
+/* Pas 3: la paraula que se'n va, gran i tatxada, damunt de la fila */
+.gone{position:absolute;height:96px;display:grid;place-items:center;border-radius:18px;translate:-14px 0;rotate:-3deg;scale:1.16;transform-origin:50% 100%;
+  background:#F0ECE1;border:3px dashed rgba(21,23,28,.34);color:var(--muted);
+  font-family:var(--font-display);font-size:56px;font-weight:600;letter-spacing:-.015em;line-height:1;white-space:nowrap;
+  box-shadow:inset 0 3px 8px rgba(21,23,28,.10),0 12px 18px -10px rgba(21,23,28,.38)}
+.gone span{text-decoration:line-through;text-decoration-thickness:5px;text-decoration-color:var(--coral)}
+
+/* Arcs d'atenció: tubs amb volum (ombra, vora fosca, cos i brillantor) */
+.arc path{fill:none;stroke-linecap:round}
+.arc .sh{filter:blur(5px)}
+.arc polygon{stroke-linejoin:round;stroke-width:2px;filter:drop-shadow(0 3px 2px rgba(21,23,28,.38))}
+
+/* ---------- Pas 4: la quadrícula amb relleu ---------- */
+.cl{font-size:32px;font-weight:600;fill:var(--ink)}
+.cl.hi{font-weight:700;fill:var(--coral)}
+.rl{font-size:34px;font-weight:600;fill:var(--ink)}
+.rl.hi{font-weight:700;fill:var(--blue)}
+.hatch{fill:url(#hatch)}
+.frame{fill:none;stroke-linejoin:round}
+.plate{fill:url(#paper);stroke:rgba(21,23,28,.14);stroke-width:2px}
+.plate-edge{fill:#CCC5B3}
+.cells{filter:drop-shadow(3px 5px 3px rgba(21,23,28,.32)) drop-shadow(0 9px 12px rgba(47,85,212,.30))}
+.cglint{fill:url(#glint)}
+.legend{position:absolute;padding:28px 34px;display:flex;flex-direction:column;justify-content:space-between}
+.lg{display:flex;align-items:center;gap:24px;font-size:40px;font-weight:600;line-height:1.1}
+.lg svg{position:static;flex:none;filter:drop-shadow(0 2px 1px rgba(21,23,28,.25))}
+.scale i{display:block;height:36px;border-radius:999px;background:linear-gradient(90deg,var(--blue-soft),var(--blue));border:2px solid var(--line);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.35),inset 0 -4px 0 rgba(0,0,0,.14),0 6px 10px -6px rgba(21,23,28,.4)}
+.scale div{display:flex;justify-content:space-between;margin-top:14px;font-size:38px;font-weight:600;line-height:1.1}
+
+/* ---------- Passos 5 i 6: fulls amb gruix, losas apilades i rajoles ---------- */
+.sheet{filter:drop-shadow(0 12px 9px rgba(21,23,28,.26)) drop-shadow(0 2px 2px rgba(21,23,28,.16))}
+.sheet-edge,.tile-edge{fill:#C9C2AF}
+.sheet-face,.tile-face{fill:url(#paper);stroke:rgba(21,23,28,.16);stroke-width:2px}
+.sheet-hi{fill:none;stroke:rgba(255,255,255,.95);stroke-width:2px;stroke-linecap:round}
+.num{font-size:36px;font-weight:700;fill:var(--ink)}
+.mini-bg{fill:rgba(21,23,28,.07)}
+.tile{filter:drop-shadow(0 9px 7px rgba(21,23,28,.24))}
+.tile-title{font-size:48px;font-weight:700;fill:var(--ink)}
+.slab{filter:drop-shadow(4px 7px 5px rgba(21,23,28,.26))}
+.slab.pulled{translate:120px -6px;filter:drop-shadow(16px 24px 12px rgba(21,23,28,.30)) drop-shadow(0 0 13px rgba(47,85,212,.62))}
+.sl-top{fill:url(#top);stroke:rgba(21,23,28,.16);stroke-width:1.5px;stroke-linejoin:round}
+.sl-side{fill:#CBC4B2;stroke:rgba(21,23,28,.16);stroke-width:1.5px;stroke-linejoin:round}
+.sl-front{fill:url(#paper);stroke:rgba(21,23,28,.22);stroke-width:1.5px;stroke-linejoin:round}
+.sl-top.on{fill:#F4F7FF}
+.sl-side.on{fill:#88A0EA;stroke:rgba(21,40,120,.35)}
+.sl-front.on{fill:url(#paperb);stroke:var(--blue);stroke-width:3px}
+.sl-hi{fill:none;stroke:rgba(255,255,255,.95);stroke-width:2px;stroke-linecap:round}
+.slot{fill:rgba(21,23,28,.05);stroke:rgba(21,23,28,.30);stroke-width:2.5px;stroke-dasharray:9 7;stroke-linejoin:round}
+.slab-name{font-size:32px;font-weight:600;fill:var(--ink)}
+.slab-name.on{font-weight:700;fill:var(--blue)}
+.sq{stroke:rgba(21,23,28,.22);stroke-width:1px}
+.beam{fill:url(#beamg)}
+.lv0{fill:var(--blue-soft)}
+.lv1{fill:color-mix(in srgb,var(--blue) 16%,var(--blue-soft))}
+.lv2{fill:color-mix(in srgb,var(--blue) 30%,var(--blue-soft))}
+.lv3{fill:color-mix(in srgb,var(--blue) 44%,var(--blue-soft))}
+.lv4{fill:color-mix(in srgb,var(--blue) 58%,var(--blue-soft))}
+.lv5{fill:color-mix(in srgb,var(--blue) 72%,var(--blue-soft))}
+.lv6{fill:color-mix(in srgb,var(--blue) 86%,var(--blue-soft))}
+.lv7{fill:var(--blue)}
+
+/* ---------- Fons: anells i arcs que suren en profunditat, desenfocats, a dalt a la dreta ---------- */
+#fons{opacity:.66;filter:saturate(1.02);
+  -webkit-mask-image:radial-gradient(1320px 900px at 106% -10%,#000 22%,rgba(0,0,0,.5) 42%,transparent 70%);
+          mask-image:radial-gradient(1320px 900px at 106% -10%,#000 22%,rgba(0,0,0,.5) 42%,transparent 70%)}
+#fons .anell{position:absolute;border-radius:50%;
+  background:
+    radial-gradient(circle closest-side,transparent calc(100% - var(--b)),rgba(255,255,255,.55) calc(100% - var(--b) * .78),transparent calc(100% - var(--b) * .4),rgba(0,0,0,.16) calc(100% - 2px)),
+    conic-gradient(from 300deg,var(--l),var(--c) 100deg,var(--d) 190deg,var(--c) 280deg,var(--l));
+  -webkit-mask-image:radial-gradient(circle closest-side,transparent calc(100% - var(--b) - .5px),#000 calc(100% - var(--b)),#000 calc(100% - 1px),transparent 100%);
+          mask-image:radial-gradient(circle closest-side,transparent calc(100% - var(--b) - .5px),#000 calc(100% - var(--b)),#000 calc(100% - 1px),transparent 100%)}
+#fons .anell.mig{clip-path:inset(50% 0 0 0)}
+#fons .bola{position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,var(--l),var(--c) 48%,var(--d) 100%);
+  box-shadow:0 36px 46px -22px rgba(21,23,28,.45)}
+
+/* ---------- v4 · Llum ----------
+   Brilla lo que emite, con el color de su significado: azul el origen y los datos, coral lo elegido. El texto nunca brilla.
+   Las encesas ([data-encen], [data-reflex]) y los halos que aparecen (a4-halo, .sweep) solo corren al avanzar (body[data-dir]). */
+@keyframes a4-halo{from{opacity:0}}
+@keyframes a4-sweep{from{background-position:-340px 0}to{background-position:2000px 0}}
+
+/* Pasos 1-3: las teclas activas emiten luz (un ::after con su halo; aparece cuando la tecla cambia de color; --h = retardo) */
+.w.src::after,.w.dst::after{content:"";position:absolute;inset:-3px;border-radius:inherit;pointer-events:none}
+.w.src::after{box-shadow:0 0 18px 2px rgba(47,85,212,.46),0 0 50px 8px rgba(47,85,212,.20),0 24px 34px -10px rgba(47,85,212,.40)}
+.w.dst::after{box-shadow:0 0 18px 2px rgba(210,70,42,.46),0 0 50px 8px rgba(210,70,42,.20),0 24px 34px -10px rgba(210,70,42,.40)}
+body:not([data-dir="back"]) .w.src::after,body:not([data-dir="back"]) .w.dst::after{animation:a4-halo .5s ease var(--h,0ms) backwards}
+
+/* Paso 4: el bloque «ple→carrer» encendido, el marco como neón y la franja de la fila con una luz suave */
+.frame{filter:drop-shadow(0 0 7px rgba(210,70,42,.8))}
+.rowband{filter:drop-shadow(0 0 9px rgba(47,85,212,.45))}
+
+/* Paso 5: una franja de luz cruza las doce hojas una sola vez (recortada con sus formas); en reposo queda fuera */
+.sweepbox{position:absolute;left:0;top:0;width:1776px;height:612px;pointer-events:none;
+  background:linear-gradient(100deg,rgba(120,160,255,0) 30%,rgba(120,160,255,.30) 42%,rgba(255,255,255,.74) 50%,rgba(120,160,255,.30) 58%,rgba(120,160,255,0) 70%) no-repeat;
+  background-size:360px 100%;background-position:-340px 0}
+body:not([data-dir="back"]) .sweepbox{animation:a4-sweep 1.2s cubic-bezier(.45,0,.2,1) 700ms both}
+
+/* Fondo: bolas y un anillo con luz propia, suaves */
+#fons .bola{box-shadow:0 36px 46px -22px rgba(21,23,28,.45),0 0 46px 12px rgba(var(--g),.42)}
+#fons .anell.lum{opacity:.4}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"><script src="IA-S1-ritme.js"></script></head><body data-animation="atencio"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Espai / Av Pàg / Re Pàg     Inici: reinicia     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "L’atenció: com usa el context",
+  "words": [
+    "L’animal",
+    "no",
+    "va",
+    "creuar",
+    "el",
+    "carrer",
+    "perquè",
+    "estava",
+    "massa",
+    "cansat"
+  ],
+  "alternate": "ple",
+  "captions": [
+    "El context relaciona les paraules d’una frase.",
+    "Cada paraula reparteix l’atenció entre les anteriors.",
+    "Canvia una paraula i canvia on va l’atenció.",
+    "Ho calcula tot alhora, amb l’atenció només cap enrere.",
+    "Moltes atencions en paral·lel, capa rere capa.",
+    "GPT-2 petit: 12 atencions per capa i 12 capes."
+  ],
+  "wordNote": "Simplificat: paraules en lloc de tokens. Adaptat de Google Research (2017).",
+  "adaptationNote": "Adaptació docent; els pesos no són una mesura d’un model concret.",
+  "matrixNote": "Simplificat: ometem l’atenció al mateix token.",
+  "headsNote": "Cada full és una atenció diferent; els patrons són il·lustratius.",
+  "layersNote": "Els models actuals poden tenir-ne moltes més.",
+  "columns": "Paraula atesa",
+  "rows": "Paraula que atén",
+  "low": "Menys pes",
+  "high": "Més pes",
+  "causal": "Cap paraula futura",
+  "layer": "Capa",
+  "oneLayer": "Una capa",
+  "headNumbers": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12"
+  ]
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current=0, totalSteps=1, drawStep, generation=0, ANIM=true;
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE='cubic-bezier(.2,.8,.2,1)';
+const COL=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+// Només s'anima en avançar (o en carregar); en retrocedir o amb «reduir moviment» es pinta l'estat final.
+function motion(el,frames,options={}){if(!el||!ANIM)return null;return el.animate(frames,{duration:600,easing:EASE,fill:'backwards',...options});}
+function show(html,caption='',note='',stamp=''){
+ $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+ if(caption)motion($('#caption'),[{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'}],{duration:500});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ motion($('#title'),[{opacity:0,transform:'translateY(9px)'},{opacity:1,transform:'translateY(0)'}],{duration:600});
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* ---------- Dades (inventades amb finalitat docent; cada fila no buida suma 1) ---------- */
+const TIRED=[.54,.025,.03,.035,.025,.14,.055,.08,.07];
+const FULL=[.12,.025,.03,.035,.025,.58,.055,.07,.06];
+const SW=1776, SH=612;                       // mida de l'escena
+/* Degradats comuns dels objectes (una sola llum, de dalt a l'esquerra) */
+const DEFS=`<defs>
+<linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F2EFE5"/></linearGradient>
+<linearGradient id="paperb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F7FF"/><stop offset="1" stop-color="#D9E2FF"/></linearGradient>
+<linearGradient id="top" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EDE9DD"/></linearGradient>
+<linearGradient id="glint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".55"/><stop offset=".6" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+<radialGradient id="ball" cx=".34" cy=".3" r=".8"><stop offset="0" stop-color="#C2D0FF"/><stop offset=".45" stop-color="#2F55D4"/><stop offset="1" stop-color="#162E8C"/></radialGradient>
+<radialGradient id="ballglow"><stop offset="0" stop-color="#8FB0FF" stop-opacity=".78"/><stop offset=".42" stop-color="#2F55D4" stop-opacity=".30"/><stop offset="1" stop-color="#2F55D4" stop-opacity="0"/></radialGradient>
+<radialGradient id="lit"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".92"/><stop offset=".3" stop-color="#9DBBFF" stop-opacity=".62"/><stop offset=".68" stop-color="#2F55D4" stop-opacity=".20"/><stop offset="1" stop-color="#2F55D4" stop-opacity="0"/></radialGradient>
+<radialGradient id="poolb"><stop offset="0" stop-color="#2F55D4" stop-opacity=".30"/><stop offset=".6" stop-color="#2F55D4" stop-opacity=".12"/><stop offset="1" stop-color="#2F55D4" stop-opacity="0"/></radialGradient>
+</defs>`;
+const svgOpen=(extra='')=>`<svg viewBox="0 0 ${SW} ${SH}" width="${SW}" height="${SH}" aria-label="${esc(TEXTOS.title)}" ${extra}>${DEFS}`;
+const lvl=w=>Math.min(7,Math.floor(Math.sqrt(w)*7.99));   // 8 tons de blau, de --blue-soft a --blue
+
+// Matriu docent del pas 4 (la mateixa de la versió anterior)
+function weightRow(row,seed=0){
+  if(row===0)return [];
+  if(row===9&&seed===0)return FULL;
+  const values=Array.from({length:row},(_,col)=>{
+    const pattern=(row+seed)%4;
+    if(pattern===0)return col===row-1?9:1;
+    if(pattern===1)return col===(seed+row)%row?9:1+(col%3)*.3;
+    if(pattern===2)return col===0?8:1+(col%2)*.4;
+    return 1+((col*7+row*3+seed*5)%11);
+  });
+  const sum=values.reduce((a,b)=>a+b,0);return values.map(x=>x/sum);
+}
+
+// Dotze patrons d'atenció clarament diferents (passos 5 i 6). Cada fila suma 1.
+function headWeights(h){
+  return Array.from({length:10},(_,r)=>{
+    const v=Array(10).fill(0);
+    for(let c=0;c<r;c++){
+      const d=r-c;
+      let x;
+      switch(h){
+        case 0:x=d===1?1:.04;break;                    // només el token anterior
+        case 1:x=c===0?1:.03;break;                    // sempre el primer
+        case 2:x=d<=3?1:.03;break;                     // finestra de tres
+        case 3:x=1;break;                              // repartit per igual
+        case 4:x=d%2===0?1:.05;break;                  // una de cada dues
+        case 5:x=Math.exp(-(d-1)*.8);break;            // decreix amb la distància
+        case 6:x=(c===0||c===3)?1:.04;break;           // dos punts fixos
+        case 7:x=d===2?1:.04;break;                    // dos enrere
+        case 8:x=(c===0||d===1)?1:.04;break;           // el primer i l'anterior
+        case 9:x=1/(c+1);break;                        // més pes cap a l'inici
+        case 10:x=((c*5+r*3)%7===0)?1:.04;break;       // dispers
+        default:x=d%3===1?1:.05;                       // una de cada tres
+      }
+      v[c]=x;
+    }
+    const s=v.reduce((a,b)=>a+b,0);return s?v.map(x=>x/s):v;
+  });
+}
+// Matriu petita (triangle inferior) en SVG: cel·la de `cell` px
+function mini(x,y,cell,h){
+  const rows=headWeights(h);let out=`<rect class="mini-bg" x="${x}" y="${y}" width="${cell*10}" height="${cell*10}" rx="4"/>`;
+  rows.forEach((row,r)=>row.forEach((w,c)=>{if(c<r)out+=`<rect class="lv${lvl(w)}" x="${x+c*cell}" y="${y+r*cell}" width="${cell-1}" height="${cell-1}" rx="1.5"/>`;}));
+  return out;
+}
+
+/* ---------- Tubs: un traç amb ombra, vora fosca, cos i brillantor (arcs d'atenció i fletxa de profunditat) ---------- */
+const PAL={coral:{rim:'#8A2713',body:'#D2462A',hl:'rgba(255,255,255,.52)'},ink:{rim:'#101218',body:'#454A57',hl:'rgba(255,255,255,.34)'},blue:{rim:'#1B3796',body:'#2F55D4',hl:'rgba(255,255,255,.5)'}};
+const LAYERS=['sh','g4','g3','g2','g1','rim','bd','hl'];
+const GLOWC={coral:'210,70,42',ink:'47,85,212',blue:'47,85,212'};
+/* gk (0..1): intensidad del neón; los cuatro trazos g1..g4 son un halo escalonado (sin filtros: barato de animar) */
+function tubeSpec(w,strong,pal,gk=0){
+  const p=PAL[pal],big=strong?1:0,gc=GLOWC[pal],GA=[.26,.16,.09,.05],GE=[7,15,26,38];
+  const T={
+    sh:{sw:w+3,stroke:'rgba(21,23,28,.34)',tr:`${big?16:7}px ${big?26:12}px`},
+    rim:{sw:w+2,stroke:p.rim,tr:'0px 0px'},
+    bd:{sw:Math.max(2,w*.8),stroke:p.body,tr:'0px 0px'},
+    hl:{sw:Math.max(1.5,w*.2),stroke:p.hl,tr:`${(-w*.16).toFixed(2)}px ${(-w*.2).toFixed(2)}px`}
+  };
+  ['g1','g2','g3','g4'].forEach((k,i)=>{T[k]={sw:w+GE[i],stroke:`rgba(${gc},${(GA[i]*gk).toFixed(3)})`,tr:'0px 0px'};});
+  return T;
+}
+/* Halo de la punta de flecha: solo la coral */
+const HF=hot=>`drop-shadow(0 3px 2px rgba(21,23,28,.38)) drop-shadow(0 0 ${hot?8:0}px rgba(210,70,42,${hot?.7:0}))`;
+const tubeSvg=(d,T)=>LAYERS.map(k=>`<path class="${k}" d="${d}" style="stroke-width:${T[k].sw.toFixed(2)}px;stroke:${T[k].stroke};translate:${T[k].tr}"/>`).join('');
+
+/* ---------- Passos 1 a 3: la frase, les tecles i els arcs d'atenció ---------- */
+const ROW_H=96, ROW_TOP=176, ROW_MID=(SH-ROW_H)/2, SRC=9, KARC=.15, ARROW=16, TRAY=26, GHOST_Y=21;
+/* Estats d'una tecla (mateixos valors que .w, .w.src i .w.dst del CSS) */
+const KEY={
+  plain:{backgroundColor:'#FDFCF8',borderColor:'rgba(21,23,28,.10)','--edge':'#D3CDBF','--lift':'0px'},
+  src:{backgroundColor:'#E4EAFF',borderColor:'#2F55D4','--edge':'#7F98EA','--lift':'8px'},
+  dst:{backgroundColor:'#FFE5DC',borderColor:'#D2462A','--edge':'#E39A82','--lift':'8px'}
+};
+function sentenceHtml(step){
+  const alt=step===2, top=step===0?ROW_MID:ROW_TOP, dst=step===1?0:step===2?5:-1;
+  const chips=TEXTOS.words.map((word,i)=>{
+    const label=(alt&&i===SRC)?TEXTOS.alternate:word;
+    const cls='w'+(i===SRC?' src':'')+(i===dst?' dst':'');
+    return `<span class="${cls}" data-i="${i}"><span class="t">${esc(label)}</span>${i===SRC?`<span class="ph" aria-hidden="true">${esc(word)}</span>`:''}</span>`;
+  }).join('');
+  return `<div class="sent" style="top:${top}px">${chips}</div>${svgOpen('class="over"')}</svg>`;
+}
+function arcStyle(i,weights,sel){
+  const wt=weights[i],strong=i===sel,w=(3+wt*22)*(strong?1.2:1);
+  return {w,o:strong?1:Math.min(.8,.28+wt*3.4),strong,s:.9+w/14,g:strong?1:Math.min(.5,wt*2.2)};
+}
+// Dibuixa els arcs sota la safata a partir de les posicions reals de les tecles
+function buildArcs(step){
+  const sent=$('.sent'),chips=[...sent.children],svg=$('svg.over');
+  const cx=chips.map(c=>sent.offsetLeft+c.offsetLeft+c.offsetWidth/2),trayB=sent.offsetTop+ROW_H+TRAY;
+  const weights=step===2?FULL:TIRED,sel=step===2?5:0,y0=trayB+18,sx=cx[SRC],yE=trayB+6+12;
+  const order=weights.map((_,i)=>i).sort((a,b)=>weights[a]-weights[b]);
+  let g='';
+  order.forEach(i=>{
+    const st=arcStyle(i,weights,sel),pal=st.strong?'coral':'ink',tx=cx[i],span=sx-tx,c=KARC*span/.75;
+    const d=`M ${sx.toFixed(1)} ${y0} C ${sx.toFixed(1)} ${(y0+c).toFixed(1)} ${tx.toFixed(1)} ${(y0+c).toFixed(1)} ${tx.toFixed(1)} ${yE}`;
+    g+=`<g class="arc" data-i="${i}" style="opacity:${st.o}">${tubeSvg(d,tubeSpec(st.w,st.strong,pal,st.g))}<polygon points="-12,${ARROW} 0,0 12,${ARROW}" style="fill:${PAL[pal].body};stroke:${PAL[pal].rim};filter:${HF(st.strong)};transform:translate(${tx.toFixed(1)}px,${trayB+6}px) scale(${st.s.toFixed(3)})"/></g>`;
+  });
+  // la paraula d'origen: una bola blava amb ombra de contacte
+  g+=`<g transform="translate(${sx.toFixed(1)} ${y0})"><g class="srcball"><circle r="40" style="fill:url(#ballglow)"/><ellipse cx="7" cy="15" rx="15" ry="7" style="fill:rgba(21,23,28,.38);filter:blur(3px)"/><circle r="14" style="fill:url(#ball)"/><circle cx="-4.5" cy="-5.5" r="4.2" style="fill:#fff;opacity:.92"/></g></g>`;
+  if(step===2){
+    // «cansat» tatxat, gran, damunt de la fila, amb una fletxa cap a «ple»
+    const c=chips[SRC];
+    g+=`<path class="stroke ghostarrow" d="M ${sx.toFixed(1)} 134 V ${sent.offsetTop-22} M ${(sx-13).toFixed(1)} ${sent.offsetTop-36} L ${sx.toFixed(1)} ${sent.offsetTop-22} L ${(sx+13).toFixed(1)} ${sent.offsetTop-36}" style="stroke-width:6px"/>`;
+    $('#scene').insertAdjacentHTML('beforeend',`<div class="gone" style="left:${sent.offsetLeft+c.offsetLeft}px;top:${GHOST_Y}px;width:${c.offsetWidth}px"><span>${esc(TEXTOS.words[SRC])}</span></div>`);
+  }
+  svg.innerHTML=DEFS+g;
+}
+/* Luz de una tecla activa: --h = cuándo aparece su halo (cuando empieza a cambiar de color), --d = destello (null = sin destello) */
+function lightKey(el,h,d){
+  if(!el||!ANIM)return;
+  el.style.setProperty('--h',h+'ms');
+  if(d==null)return;
+  el.setAttribute('data-encen','');el.setAttribute('data-llum',el.classList.contains('dst')?'coral':'blue');el.style.setProperty('--d',d+'ms');
+}
+function animateSentence(step,previous){
+  const chips=$$('.sent .w');
+  if(step===0){
+    chips.forEach((c,i)=>motion(c,[{opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'},{opacity:1,transform:'none'}],{delay:i*70,duration:620}));
+    motion(chips[SRC],[KEY.plain,KEY.src],{delay:900,duration:520});
+    lightKey(chips[SRC],900,1300);
+    return;
+  }
+  const arcs=$$('.over .arc'),ball=$('.over .srcball');
+  if(step===2&&previous===1){
+    // Mateixos arcs: només canvia el pes. «cansat» surt de la fila cap amunt i «ple» hi cau.
+    const ghost=$('.gone'),ga=$('.over .ghostarrow'),t=chips[SRC].querySelector('.t');
+    motion(ghost,[{translate:`0 ${ROW_TOP-GHOST_Y}px`,scale:1,rotate:'0deg'},{translate:'-14px 0',scale:1.16,rotate:'-3deg'}],{delay:60,duration:660});
+    motion(ga,[{opacity:0},{opacity:1}],{delay:560,duration:300});
+    motion(chips[SRC],[{'--lift':'0px'},{'--lift':'8px'}],{delay:520,duration:420});
+    motion(t,[{opacity:0,transform:'perspective(700px) rotateX(-75deg) translateY(-24px)'},{opacity:1,transform:'none'}],{delay:480,duration:560});
+    chips[0].animate([KEY.dst,KEY.plain],{duration:500,delay:400,fill:'backwards',easing:EASE});
+    arcs.forEach(g=>{
+      const i=+g.dataset.i,a=arcStyle(i,TIRED,0),b=arcStyle(i,FULL,5),head=g.lastChild;
+      const A=tubeSpec(a.w,a.strong,a.strong?'coral':'ink',a.g),B=tubeSpec(b.w,b.strong,b.strong?'coral':'ink',b.g);
+      const tr=s=>head.style.transform.replace(/scale\([^)]*\)/,`scale(${s})`);
+      motion(g,[{opacity:a.o},{opacity:b.o}],{delay:400,duration:700});
+      LAYERS.forEach(k=>motion(g.querySelector('.'+k),[{strokeWidth:A[k].sw+'px',stroke:A[k].stroke,translate:A[k].tr},{strokeWidth:B[k].sw+'px',stroke:B[k].stroke,translate:B[k].tr}],{delay:400,duration:700}));
+      motion(head,[{transform:tr(a.s.toFixed(3)),fill:PAL[a.strong?'coral':'ink'].body,stroke:PAL[a.strong?'coral':'ink'].rim,filter:HF(a.strong)},{transform:tr(b.s.toFixed(3)),fill:PAL[b.strong?'coral':'ink'].body,stroke:PAL[b.strong?'coral':'ink'].rim,filter:HF(b.strong)}],{delay:400,duration:700});
+    });
+    motion(chips[5],[KEY.plain,KEY.dst],{delay:900,duration:500});
+    lightKey(chips[5],900,1280);lightKey(chips[SRC],520,null);
+    return;
+  }
+  // Arcs que es dibuixen des de la darrera paraula cap enrere (el més fort, l'últim)
+  if(step===1)motion($('.sent'),[{transform:`translateY(${ROW_MID-ROW_TOP}px)`},{transform:'translateY(0)'}],{duration:640});
+  const base=step===1?420:200;
+  motion(ball,[{opacity:0,transform:'scale(.3)'},{opacity:1,transform:'scale(1)'}],{delay:base-60,duration:300});
+  arcs.forEach((g,rank)=>{
+    const head=g.lastChild,delay=base+rank*60;
+    LAYERS.forEach(k=>{const p=g.querySelector('.'+k),L=p.getTotalLength();motion(p,[{strokeDasharray:`${L} ${L}`,strokeDashoffset:L},{strokeDasharray:`${L} ${L}`,strokeDashoffset:0}],{delay,duration:620});});
+    motion(head,[{opacity:0},{opacity:1}],{delay:delay+480,duration:200});
+  });
+  const dst=chips.find(c=>c.classList.contains('dst')),end=base+arcs.length*60+420;
+  if(dst)motion(dst,[KEY.plain,KEY.dst],{delay:end,duration:500});
+  lightKey(dst,end,end+380);
+  if(ANIM&&ball){ball.setAttribute('data-encen','');ball.setAttribute('data-llum','blue');ball.style.setProperty('--d',(base+260)+'ms');}
+  if(step===2){motion($('.gone'),[{opacity:0},{opacity:1}],{delay:base,duration:400});motion($('.over .ghostarrow'),[{opacity:0},{opacity:1}],{delay:base,duration:400});}
+}
+
+/* ---------- Pas 4: la quadrícula d'atenció, com una placa amb blocs d'alçada variable ---------- */
+const hgt=w=>3+13*Math.sqrt(w);                       // més pes, bloc més alt
+function matrixGraphic(){
+  const C=42,G=C*10,S=C-10,CARD=560,LAB=170,GAP=110;
+  const x0=Math.round((SW-(LAB+16+G+GAP+CARD))/2),gx=x0+LAB+16,gy=SH-G-40,cardX=gx+G+GAP;
+  const names=[...TEXTOS.words];names[SRC]=TEXTOS.alternate;
+  let s=svgOpen()+`<defs><pattern id="hatch" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M-4 4 L4 -4 M0 14 L14 0 M10 18 L18 10" style="stroke:rgba(21,23,28,.24);stroke-width:2.5px"/></pattern><linearGradient id="rec" gradientUnits="userSpaceOnUse" x1="0" y1="${gy}" x2="0" y2="${gy+70}"><stop offset="0" stop-color="#15171C" stop-opacity=".24"/><stop offset="1" stop-color="#15171C" stop-opacity="0"/></linearGradient></defs>`;
+  // placa amb gruix
+  s+=`<g class="plate-g" style="filter:drop-shadow(0 14px 10px rgba(21,23,28,.26))"><rect class="plate-edge" x="${gx-12}" y="${gy}" width="${G+24}" height="${G+24}" rx="20"/><rect class="plate" x="${gx-12}" y="${gy-12}" width="${G+24}" height="${G+24}" rx="20"/></g>`;
+  // etiquetes de columna (verticals: no s'enganxen) i de fila: planes, sense deformar
+  s+='<g class="labels">'+names.map((w,i)=>`<text class="cl${i===5?' hi':''}" transform="rotate(-90 ${gx+i*C+C/2+12} ${gy-24})" x="${gx+i*C+C/2+12}" y="${gy-24}">${esc(w)}</text><text class="rl${i===SRC?' hi':''}" x="${gx-26}" y="${gy+i*C+C/2+12}" text-anchor="end">${esc(w)}</text>`).join('')+'</g>';
+  // triangle superior (inclosa la diagonal): buit i enfonsat, amb rajat suau
+  let pts=`${gx},${gy} ${gx},${gy+C}`;
+  for(let r=1;r<10;r++)pts+=` ${gx+r*C},${gy+r*C} ${gx+r*C},${gy+(r+1)*C}`;
+  pts+=` ${gx+G},${gy+G} ${gx+G},${gy}`;
+  s+=`<g class="recess"><polygon points="${pts}" style="fill:rgba(21,23,28,.08)"/><polygon class="hatch" points="${pts}"/><polygon points="${pts}" style="fill:url(#rec)"/></g>`;
+  // la fila «ple»: una franja blava a la placa, per sota dels blocs
+  s+=`<rect class="rowband" x="${gx-6}" y="${gy+9*C-4}" width="${G+12}" height="${C+8}" rx="12" style="fill:rgba(47,85,212,.14);stroke:var(--blue);stroke-width:3px"/>`;
+  // blocs: l'alçada i el color segueixen el pes
+  s+='<g class="cells">';
+  for(let r=0;r<10;r++){
+    const wr=weightRow(r);
+    s+=`<g class="mrow" data-row="${r}">`;
+    for(let c=0;c<r;c++){
+      const x=gx+c*C+5,y=gy+r*C+5,h=hgt(wr[c]),dx=h*.4,p=Math.round(Math.sqrt(wr[c])*100);
+      const top=`color-mix(in srgb,var(--blue) ${p}%,var(--blue-soft))`,P=(a,b)=>`${(x+a).toFixed(1)},${(y+b).toFixed(1)}`;
+      s+=`<polygon points="${P(0,S)} ${P(S,S)} ${P(S+dx,S-h)} ${P(dx,S-h)}" style="fill:color-mix(in srgb,${top} 76%,#0E1B5C)"/>`
+        +`<polygon points="${P(S,S)} ${P(S+dx,S-h)} ${P(S+dx,-h)} ${P(S,0)}" style="fill:color-mix(in srgb,${top} 56%,#0E1B5C)"/>`
+        +`<rect x="${(x+dx).toFixed(1)}" y="${(y-h).toFixed(1)}" width="${S}" height="${S}" rx="5" style="fill:${top}"/><rect class="cglint" x="${(x+dx).toFixed(1)}" y="${(y-h).toFixed(1)}" width="${S}" height="${S}" rx="5"/>`;
+    }
+    s+='</g>';
+  }
+  s+='</g>';
+  // cel·la ple→carrer destacada: el bloc més alt de la fila
+  const hx=hgt(weightRow(9)[5]);
+  const bx=gx+5*C+5,by=gy+9*C+5,tcx=bx+hx*.4+S/2,tcy=by-hx+S/2;
+  s+=`<g class="frames" data-encen data-llum="coral" style="--d:1380ms"><circle cx="${tcx.toFixed(1)}" cy="${tcy.toFixed(1)}" r="46" style="fill:url(#lit)"/><rect x="${(bx+hx*.4).toFixed(1)}" y="${(by-hx).toFixed(1)}" width="${S}" height="${S}" rx="5" style="fill:rgba(255,255,255,.34)"/><rect class="frame" x="${gx+5*C+1}" y="${(gy+9*C+5-hx-4).toFixed(1)}" width="${(S+hx*.4+8).toFixed(1)}" height="${(S+hx+8).toFixed(1)}" rx="10" style="stroke:var(--coral);stroke-width:6px"/></g></svg>`;
+  // llegenda, com una targeta sobre la mateixa taula
+  const ic=(cells)=>`<svg class="ic" viewBox="0 0 56 56" width="56" height="56" style="position:static">${cells}</svg>`;
+  const grid3=(on,color)=>{let o='';for(let r=0;r<3;r++)for(let c=0;c<3;c++){const hit=on==='col'?c===1:r===2;o+=`<rect x="${c*20}" y="${r*20}" width="16" height="16" rx="3" style="fill:${hit?`var(${color})`:'rgba(21,23,28,.14)'}"/>`;}return o;};
+  s+=`<div class="legend card" style="left:${cardX}px;top:${gy-12}px;width:${CARD}px;height:${G+24}px">`
+   +`<div class="lg">${ic(grid3('col','--coral'))}<span>${esc(TEXTOS.columns)}</span></div>`
+   +`<div class="lg">${ic(grid3('row','--blue'))}<span>${esc(TEXTOS.rows)}</span></div>`
+   +`<div class="lg">${ic(`<defs><pattern id="hatch2" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M-4 4 L4 -4 M0 14 L14 0 M10 18 L18 10" style="stroke:rgba(21,23,28,.4);stroke-width:2.5px"/></pattern></defs><rect x="2" y="2" width="52" height="52" rx="6" style="fill:url(#hatch2);stroke:rgba(21,23,28,.28);stroke-width:2px"/>`)}<span>${esc(TEXTOS.causal)}</span></div>`
+   +`<div class="scale"><i></i><div><span>${esc(TEXTOS.low)}</span><span>${esc(TEXTOS.high)}</span></div></div></div>`;
+  return s;
+}
+
+/* ---------- Pas 5: dotze fulls en abanico, amb gruix i ombra ---------- */
+function fanLayout(){
+  const W=200,H=224,R=2000,DA=4.0*Math.PI/180,P0=[SW/2,0],geo=[];
+  let minY=1e9,maxY=-1e9,minX=1e9,maxX=-1e9;
+  for(let k=0;k<12;k++){
+    const a=(k-5.5)*DA;
+    [[-W/2,-R],[W/2,-R],[W/2,-R+H],[-W/2,-R+H]].forEach(([x,y])=>{
+      const X=P0[0]+x*Math.cos(a)-y*Math.sin(a),Y=P0[1]+x*Math.sin(a)+y*Math.cos(a);
+      minX=Math.min(minX,X);maxX=Math.max(maxX,X);minY=Math.min(minY,Y);maxY=Math.max(maxY,Y);
+    });
+    geo.push(a*180/Math.PI);
+  }
+  const dy=(SH-(maxY-minY))/2-minY;                 // centra el ventall en vertical
+  return {W,H,R,px:P0[0],py:P0[1]+dy,angles:geo};
+}
+function headsGraphic(){
+  const f=fanLayout();let s=svgOpen();
+  let clip='';
+  for(let k=0;k<12;k++)clip+=`<rect x="${f.px-f.W/2}" y="${f.py-f.R}" width="${f.W}" height="${f.H}" rx="16" transform="rotate(${f.angles[k].toFixed(3)} ${f.px} ${f.py})"/>`;
+  s+=`<defs><clipPath id="fanclip">${clip}</clipPath></defs><ellipse cx="${SW/2}" cy="${SH/2+96}" rx="820" ry="150" style="fill:url(#poolb)"/>`;
+  for(let k=0;k<12;k++){
+    const x=f.px-f.W/2,y=f.py-f.R,a=f.angles[k];
+    s+=`<g class="sheet" style="transform-origin:${f.px}px ${f.py}px;transform:rotate(${a.toFixed(3)}deg)"><rect class="sheet-edge" x="${x+3}" y="${y+9}" width="${f.W}" height="${f.H}" rx="16"/><rect class="sheet-face" x="${x}" y="${y}" width="${f.W}" height="${f.H}" rx="16"/><path class="sheet-hi" d="M ${x+16} ${y+2.5} H ${x+f.W-16}"/><text class="num" x="${x+16}" y="${y+48}">${esc(TEXTOS.headNumbers[k])}</text>${mini(x+16,y+68,13,k)}</g>`;
+  }
+  return s+'</svg><div class="sweepbox" style="clip-path:url(#fanclip)"></div>';
+}
+
+/* ---------- Pas 6: dotze capes com a lloses apilades, una d'elles treta de la pila ---------- */
+function layersGraphic(){
+  const W=548,T=38,DX=24,DY=-14,PITCH=46,SX=64,SY=41,SEL=5,PULL=120,TX=868,TW=212,TH=148,TGX=20,TGY=18,TY=92;
+  let s=svgOpen();
+  // fletxa de profunditat (tub blau): capa rere capa
+  const ay=SY+10,ae=SY+11*PITCH-18;
+  s+=`<g class="arc"><g>${tubeSvg(`M 28 ${ay} V ${ae}`,tubeSpec(12,false,'blue',.8))}</g><polygon points="-22,0 0,38 22,0" style="fill:${PAL.blue.body};stroke:${PAL.blue.rim};filter:drop-shadow(0 3px 2px rgba(21,23,28,.38)) drop-shadow(0 0 9px rgba(47,85,212,.6));transform:translate(28px,${ae-4}px)"/></g>`;
+  // feix de la capa triada fins a l'ampliació
+  const bx=SX+PULL+W+DX,by=SY+SEL*PITCH-6;
+  s+=`<defs><linearGradient id="beamg" gradientUnits="userSpaceOnUse" x1="${bx}" y1="0" x2="${TX-24}" y2="0"><stop offset="0" stop-color="#2F55D4" stop-opacity=".52"/><stop offset="1" stop-color="#2F55D4" stop-opacity=".15"/></linearGradient><linearGradient id="beame" gradientUnits="userSpaceOnUse" x1="${bx}" y1="0" x2="${TX-24}" y2="0"><stop offset="0" stop-color="#6F93FF" stop-opacity=".95"/><stop offset="1" stop-color="#6F93FF" stop-opacity=".22"/></linearGradient></defs>`;
+  s+=`<polygon class="beam" points="${bx},${by+DY} ${TX-24},${TY-12} ${TX-24},${TY+3*TH+2*TGY+12} ${bx},${by+T}"/>`;
+  {const e1=`M ${bx} ${by+DY} L ${TX-24} ${TY-12}`,e2=`M ${bx} ${by+T} L ${TX-24} ${TY+3*TH+2*TGY+12}`;
+   s+=`<g class="beam-edge" data-encen data-llum="blue" style="--d:1240ms">${[e1,e2].map(d=>`<path d="${d}" style="fill:none;stroke:url(#beame);stroke-width:8px;stroke-opacity:.16;stroke-linecap:round"/><path d="${d}" style="fill:none;stroke:url(#beame);stroke-width:2.5px;stroke-linecap:round"/>`).join('')}</g>`;}
+  // el buit que deixa «Capa 6» a la pila
+  {const x=SX,y=SY+SEL*PITCH;s+=`<g class="slot-g"><polygon class="slot" points="${x},${y} ${x+DX},${y+DY} ${x+W+DX},${y+DY} ${x+W+DX},${y+DY+T} ${x+W},${y+T} ${x},${y+T}"/></g>`;}
+  // lloses: de baix cap amunt, perquè les de dalt tapin la cara superior de les de sota
+  for(let k=11;k>=0;k--){
+    const x=SX,y=SY+k*PITCH,on=k===SEL;
+    s+=`<g class="slab${on?' pulled':''}" data-k="${k}">`
+      +`<polygon class="sl-top${on?' on':''}" points="${x},${y} ${x+W},${y} ${x+W+DX},${y+DY} ${x+DX},${y+DY}"/>`
+      +`<polygon class="sl-side${on?' on':''}" points="${x+W},${y} ${x+W+DX},${y+DY} ${x+W+DX},${y+DY+T} ${x+W},${y+T}"/>`
+      +`<rect class="sl-front${on?' on':''}" x="${x}" y="${y}" width="${W}" height="${T}" rx="3"/>`
+      +`<path class="sl-hi" d="M ${x+5} ${y+2.5} H ${x+W-5}"/>`
+      +`<text class="slab-name${on?' on':''}" x="${x+18}" y="${y+28}">${esc(TEXTOS.layer)} ${esc(TEXTOS.headNumbers[k])}</text>`;
+    for(let h=0;h<12;h++){const p=3+((h*7+k*3)%18);s+=`<rect class="sq lv${Math.min(7,Math.floor((p-3)/18*8))}" x="${x+158+h*31}" y="${y+8}" width="22" height="22" rx="4"/>`;}
+    s+='</g>';
+  }
+  s+=`<text class="tile-title" x="${TX}" y="52">${esc(TEXTOS.oneLayer)}</text>`;
+  for(let h=0;h<12;h++){
+    const x=TX+(h%4)*(TW+TGX),y=TY+Math.floor(h/4)*(TH+TGY);
+    s+=`<g class="tile"><rect class="tile-edge" x="${x+2}" y="${y+8}" width="${TW}" height="${TH}" rx="16"/><rect class="tile-face" x="${x}" y="${y}" width="${TW}" height="${TH}" rx="16"/><path class="sheet-hi" d="M ${x+14} ${y+2.5} H ${x+TW-14}"/><text class="num" x="${x+22}" y="${y+TH/2+13}">${esc(TEXTOS.headNumbers[h])}</text>${mini(x+TW-18-120,y+(TH-120)/2,12,h)}</g>`;
+  }
+  return s+'</svg>';
+}
+
+function renderStep(step,previous){
+  ANIM=!reduced()&&step>=previous;
+  let html,note;
+  if(step<3){html=sentenceHtml(step);note=step<2?TEXTOS.wordNote:TEXTOS.adaptationNote;}
+  else if(step===3){html=matrixGraphic();note=TEXTOS.matrixNote;}
+  else if(step===4){html=headsGraphic();note=TEXTOS.headsNote;}
+  else {html=layersGraphic();note=TEXTOS.layersNote;}
+  show(html,TEXTOS.captions[step],note,TEXTOS.illustrative);
+  if(step<3){if(step>0)buildArcs(step);animateSentence(step,previous);}
+  if(step===3){
+    motion($('.plate-g'),[{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'none'}],{duration:520});
+    $$('.mrow').forEach((el,i)=>motion(el,[{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'none'}],{delay:200+i*45,duration:520}));
+    motion($('.labels'),[{opacity:0},{opacity:1}],{duration:400});
+    motion($('.recess'),[{opacity:0},{opacity:1}],{delay:300,duration:500});
+    motion($('.rowband'),[{opacity:0},{opacity:1}],{delay:500,duration:500});
+    motion($('.frames'),[{opacity:0,transform:'translateY(-14px)'},{opacity:1,transform:'none'}],{delay:900,duration:500});
+    motion($('.legend'),[{opacity:0,transform:'translateX(28px)'},{opacity:1,transform:'none'}],{delay:300,duration:600});
+  }
+  if(step===4)$$('.sheet').forEach((el,i)=>motion(el,[{transform:'rotate(0deg)',translate:'0 -70px',opacity:.4},{transform:el.style.transform,translate:'0 0',opacity:1}],{delay:i*40,duration:700}));
+  if(step===5){
+    $$('.slab').forEach(el=>{const k=+el.dataset.k;motion(el,[{transform:`translateY(${-k*46}px)`,opacity:0},{transform:'translateY(0)',opacity:1}],{delay:k*28,duration:560});});
+    motion($('.slab.pulled'),[{translate:'0px 0px',filter:'drop-shadow(4px 7px 5px rgba(21,23,28,.26)) drop-shadow(0 0 0 rgba(47,85,212,0))'},{translate:'120px -6px',filter:'drop-shadow(16px 24px 12px rgba(21,23,28,.30)) drop-shadow(0 0 13px rgba(47,85,212,.62))'}],{delay:600,duration:560});
+    motion($('.slot-g'),[{opacity:0},{opacity:1}],{delay:700,duration:400});
+    motion($('.beam'),[{opacity:0},{opacity:1}],{delay:820,duration:420});
+    motion($('.tile-title'),[{opacity:0},{opacity:1}],{delay:700,duration:400});
+    $$('.tile').forEach((el,i)=>motion(el,[{opacity:0,transform:'perspective(700px) rotateX(-70deg) translateY(-12px)'},{opacity:1,transform:'none'}],{delay:760+i*34,duration:450}));
+  }
+}
+
+/* Fons temàtic (el crida IA-S1-comu.js): anells i arcs penjats com els arcs d'atenció, en blau i verd, a diferents
+   profunditats i desenfocats. Sense text. Cada anell és un cercle amb degradat cònic (la llum, de dalt a l'esquerra). */
+window.fonsIA=function(capa){
+  const Q={b:['#BFCDFA','#5F80E6','#2E4DB8'],g:['#AAE3CB','#40AF87','#177A59']};
+  /* x, y, z, diàmetre, gruix, rotX, rotY, rotZ, desenfocament, color, mig anell penjat */
+  const A=[
+    [1330,-270,-200,720,120,64,0,-16,18,'b',0,1],
+    [1330,-270,-200,720,54,64,0,-16,3,'b',0],
+    [1130,-440,-520,960,40,60,8,6,6,'g',0],
+    [1560,0,60,380,34,58,-8,-30,1.4,'g',0],
+    [1080,-390,-120,560,30,18,0,0,2.4,'b',1],
+    [1470,210,170,230,24,56,6,-20,1.2,'b',0],
+    [1500,-260,-60,300,26,50,0,20,1.4,'g',1],
+    [1250,-340,-380,520,32,66,-10,12,4.5,'b',1]
+  ];
+
+  let h='';
+  A.forEach(([x,y,z,d,b,rx,ry,rz,bl,c,mig,lum])=>{
+    const q=Q[c];
+    h+=`<i class="anell${mig?' mig':''}${lum?' lum':''}" style="left:${x}px;top:${y}px;width:${d}px;height:${d}px;--b:${b}px;--l:${q[0]};--c:${q[1]};--d:${q[2]};transform:translateZ(${z}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg);filter:blur(${bl}px)"></i>`;
+  });
+  /* bolles: la paraula d'origen de cada arc */
+  [[1760,130,60,50,'b',1.6],[1400,215,-80,38,'g',3],[1250,120,-260,66,'b',5]].forEach(([x,y,z,d,c,bl])=>{
+    const q=Q[c];
+    h+=`<i class="bola" style="left:${x}px;top:${y}px;width:${d}px;height:${d}px;--l:${q[0]};--c:${q[1]};--d:${q[2]};--g:${c==='b'?'47,85,212':'22,128,94'};transform:translateZ(${z}px);filter:blur(${bl}px)"></i>`;
+  });
+  capa.innerHTML=h;
+};
+boot(6,renderStep);
+</script><script src="IA-S1-comu.js"></script></body></html>

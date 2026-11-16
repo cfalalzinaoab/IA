@@ -1,0 +1,524 @@
+<!doctype html>
+<!--
+A2 — Dels tokens als vectors (v2, 13-10-2026).
+Les dotze components del vector i totes les posicions del mapa són valors il·lustratius, no dades extretes de cap model.
+S'indica «Valors il·lustratius» en tots els passos.
+Simplificació docent: un vector es projecta en dues dimensions; el desplaçament de «banc» representa el canvi de
+representació contextual, no una modificació de la taula estàtica de vectors del token.
+v3 (13-10-2026): profunditat. Tecles (fitxa, cel·les, pestanyes), safata enfonsada, lloses amb cantell, esferes amb ombra de contacte,
+eixos com a barres, arc del salt amb ombra a terra, placa en relleu i fons de constel·lació d'esferes (window.fonsIA).
+Cinc passos: 1 gat → números · 2 el punt al mapa · 3 quatre grups · 4 banc (dos significats) · 5 mapa complet i avís de les dimensions.
+v4 (13-10-2026): llum. «gat» i les caselles retroil·luminades en blau amb encesa en aterrar i ona de reflexos (pas 1); esfera «gat» emissora amb halo i LED, guies i fletxa com a neó blau (pas 2); halos suaus del color de grup a les esferes i lloses amb llum de color a sota (passos 3 i 5); arc coral de neó amb degradat de cometa, halo de context a la bola «banc», anell de llum en arribar, pestanya activa amb halo (pas 4); avís de dimensions amb llum corall, reflex i icones que s'encenen (pas 5); esferes del fons com a bokeh lluminós.
+Ritme (13-10-2026): carrega IA-S1-ritme.js al <head>; tot el moviment va més a poc a poc, pel mateix factor (LENT, a IA-S1-ritme.js).
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dels tokens als vectors</title><style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit}
+button{cursor:pointer;color:var(--ink)}
+
+/* ---------- Mapa (SVG de l'escena: 1776 × 612, escala 1:1) ---------- */
+.map-svg{position:absolute;left:0;top:0;width:1776px;height:612px;overflow:visible;pointer-events:none}
+.axes .rod{stroke:#6F695E;stroke-width:9px;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.axes .rod-hi{stroke:rgba(255,255,255,.55);stroke-width:3px;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.axes .rod-sh{fill:none;stroke:#15171C;stroke-linecap:round;stroke-linejoin:round}
+.axes .tip{fill:#6F695E}
+.axis{stroke-dasharray:1 2}
+.slab{transform-box:fill-box;transform-origin:center}
+.ball,.csh{transform-box:fill-box;transform-origin:center}
+svg .kicker{fill:var(--muted)}
+svg .w{font-size:40px;font-weight:500;fill:var(--ink)}
+svg .w.hero{font-weight:700}
+.guide{stroke:var(--blue);stroke-opacity:.55;stroke-width:4px;stroke-linecap:round;stroke-dasharray:1 2;fill:none}
+.ring{fill:none;stroke:var(--blue);stroke-width:4px;transform-box:fill-box;transform-origin:center;opacity:0}
+.hop{fill:none;stroke:#3A3D45;stroke-width:6px;stroke-linecap:round;stroke-linejoin:round}
+.hop.line{stroke-dasharray:1 2}
+.hop.hi{stroke:rgba(255,255,255,.5);stroke-width:2px}
+.hop.gs{stroke:#15171C;stroke-linecap:round}
+.ghost circle{fill:none;stroke:var(--muted);stroke-width:3px;stroke-dasharray:6 6}
+
+/* ---------- Pas 1: gat → fila de números ---------- */
+.s1{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.s1 .kicker{margin-bottom:8px}
+.tok{width:300px;height:128px;padding:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:68px;font-weight:700;letter-spacing:-.01em}
+.down{display:block;margin:12px 0}
+.tray{display:flex;align-items:center;gap:8px;padding:24px;width:1776px}
+.cell{flex:1 1 0;min-width:0;height:136px;display:flex;align-items:center;justify-content:center;
+  background:var(--surface);border:2px solid color-mix(in srgb,var(--blue) 30%,transparent);border-radius:var(--radius-sm);
+  font-size:44px;font-weight:600;letter-spacing:-.01em}
+.ell{flex:0 0 56px;display:block}
+.ell circle{fill:var(--muted)}
+.gpt{margin-top:24px;font-size:36px;color:var(--muted)}
+.gpt b{color:var(--ink);font-weight:700}
+
+/* ---------- Pas 2: la fila a dalt i el punt al mapa ---------- */
+.row2{position:absolute;left:0;right:0;top:0;display:flex;justify-content:center;align-items:stretch;gap:24px}
+.chip2{width:176px;padding:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:56px;font-weight:700}
+.tray.sm{width:auto;gap:6px;padding:10px}
+.tray.sm .cell{flex:0 0 104px;height:76px;font-size:36px;border-radius:12px}
+
+/* ---------- Pas 4: dues frases com a pestanyes ---------- */
+.tab{position:absolute;top:0;width:768px;height:96px;margin:0;padding:0 24px;display:flex;align-items:center;justify-content:center;
+  font-size:40px;font-weight:450;border:4px solid var(--line);text-align:center}
+.tab b{font-weight:800;text-decoration:underline;text-decoration-thickness:4px;text-underline-offset:8px;text-decoration-color:var(--tabc)}
+
+/* ---------- Pas 5: avís de les dimensions ---------- */
+.banner{position:absolute;left:0;top:0;width:1776px;height:104px;padding:0 48px;display:flex;align-items:center;justify-content:space-evenly}
+.banner .half{display:flex;align-items:center;gap:20px}
+.banner .half svg{flex:0 0 56px;width:56px;height:56px;display:block}
+.banner .half svg *{stroke:var(--coral);stroke-width:4px;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.banner .half svg circle{fill:var(--coral);stroke:none}
+.banner .val{display:block;margin-top:2px;font-size:46px;font-weight:700;line-height:1.2;letter-spacing:-.01em}
+.banner .kicker{display:block;line-height:1.1;color:color-mix(in srgb,var(--coral) 60%,var(--ink))}
+.banner .sep{width:6px;height:60px;border-radius:3px;background:rgba(210,70,42,.16);box-shadow:inset 0 2px 3px rgba(21,23,28,.22),1px 1px 0 rgba(255,255,255,.85)}
+
+/* ---------- v3 · Profunditat ----------
+   Una sola llum, de dalt a l'esquerra. Fitxes i pestanyes són tecles (--key); les safates, enfonsades;
+   les taques dels grups són lloses amb cantell; els punts del mapa, esferes amb ombra de contacte.
+   El text de l'escena sempre queda de cara. */
+#scene .tok,#scene .chip2{background:var(--surface-grad);border:3px solid var(--blue);--edge:#6B87E8;transform-origin:50% 100%;
+  box-shadow:0 22px 30px -6px rgba(47,85,212,.46),inset 0 2px 0 rgba(255,255,255,.8),inset 0 -2px 0 rgba(21,23,28,.05),0 9px 0 var(--edge),0 11px 0 rgba(21,23,28,.10),0 24px 26px -12px rgba(21,23,28,.30)}
+#scene .tray{background:linear-gradient(180deg,#D5DFFB 0%,#E8EDFF 100%);border:2px solid color-mix(in srgb,var(--blue) 26%,transparent);
+  box-shadow:inset 0 7px 16px rgba(21,23,28,.17),inset 0 -2px 0 rgba(255,255,255,.75),0 2px 0 rgba(255,255,255,.85);padding:24px 24px 44px}
+#scene .tray.sm{padding:12px 12px 28px}
+#scene .cell{background:var(--surface-grad);--edge:#7F9AEA;border:2px solid rgba(21,23,28,.07);transform-origin:50% 100%;
+  box-shadow:0 16px 24px -6px rgba(47,85,212,.42),inset 0 2px 0 rgba(255,255,255,.8),inset 0 -2px 0 rgba(21,23,28,.05),0 9px 0 var(--edge),0 11px 0 rgba(21,23,28,.10),0 24px 26px -12px rgba(21,23,28,.30)}
+#scene .ell{margin-bottom:4px}
+
+#scene .tab{background:var(--surface-grad);border:3px solid rgba(21,23,28,.10);--edge:#D3CDBF;cursor:pointer;transform-origin:50% 100%;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.8),inset 0 -2px 0 rgba(21,23,28,.05),0 9px 0 var(--edge),0 11px 0 rgba(21,23,28,.10),0 24px 26px -12px rgba(21,23,28,.42);
+  transition:background .4s var(--ease),border-color .4s var(--ease),font-weight .4s var(--ease),box-shadow .4s var(--ease),translate .4s var(--ease)}
+#scene .tab[data-active="true"]{background:var(--tabs);border-color:var(--tabc);--edge:color-mix(in srgb,var(--tabc) 45%,#fff);translate:0 8px;
+  box-shadow:inset 0 5px 10px rgba(21,23,28,.16),inset 0 -2px 0 rgba(21,23,28,.05),0 1px 0 var(--edge),0 2px 0 rgba(21,23,28,.10),0 6px 10px -8px rgba(21,23,28,.35),0 0 20px 2px rgba(var(--tcg,210,70,42),.38),0 0 54px 8px rgba(var(--tcg,210,70,42),.18);font-weight:650}
+#scene .tab:hover:not([data-active="true"]){translate:0 -2px}
+#scene .tab:active{translate:0 7px}
+#scene .tab:focus-visible{outline:4px solid var(--accent);outline-offset:8px}
+
+#scene .banner{background:linear-gradient(180deg,#FFF0E9 0%,#FFDDD0 100%);border:3px solid color-mix(in srgb,var(--coral) 36%,transparent);transform-origin:50% 100%;
+  box-shadow:0 22px 34px -8px rgba(210,70,42,.40),inset 0 3px 0 rgba(255,255,255,.9),inset 0 -3px 0 rgba(210,70,42,.10),0 9px 0 #E3917A,0 11px 0 rgba(21,23,28,.10),0 26px 30px -14px rgba(21,23,28,.30)}
+.banner .rv{position:absolute;width:18px;height:18px;border-radius:50%;
+  background:radial-gradient(circle at 32% 28%,#fff 0 8%,#E6DFD2 30%,#8C8576 100%);box-shadow:0 2px 3px rgba(21,23,28,.35),inset 0 0 0 1px rgba(21,23,28,.12)}
+.banner .rv.a{left:14px;top:14px}.banner .rv.b{right:14px;top:14px}.banner .rv.c{left:14px;bottom:14px}.banner .rv.d{right:14px;bottom:14px}
+.banner .ic{flex:none;width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 28%,#FFF7F3,#FFD3C2);box-shadow:inset 0 4px 8px rgba(21,23,28,.20),inset 0 -2px 0 rgba(255,255,255,.85),0 2px 0 rgba(255,255,255,.85),0 0 16px 3px rgba(210,70,42,.28)}
+
+/* Fons: una constel·lació d'esferes amb profunditat (mida, desenfocament i paral·laxi diferents) */
+#fons{opacity:.92;filter:saturate(1.06);
+  -webkit-mask-image:radial-gradient(1400px 940px at 100% 0%,#000 26%,rgba(0,0,0,.5) 50%,transparent 76%),linear-gradient(90deg,#000 0,rgba(0,0,0,.55) 3%,transparent 11%),linear-gradient(270deg,#000 0,rgba(0,0,0,.55) 3%,transparent 11%);
+          mask-image:radial-gradient(1400px 940px at 100% 0%,#000 26%,rgba(0,0,0,.5) 50%,transparent 76%),linear-gradient(90deg,#000 0,rgba(0,0,0,.55) 3%,transparent 11%),linear-gradient(270deg,#000 0,rgba(0,0,0,.55) 3%,transparent 11%)}
+#fons .cl{position:absolute;inset:0;transform:translate3d(calc(var(--p,0) * var(--k) * 1px),calc(var(--p,0) * var(--k) * -.35px),0);transition:transform 1.2s var(--ease)}
+#fons .cl svg{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible}
+#fons .cl line{stroke:var(--c);stroke-opacity:.32;stroke-width:2px;stroke-linecap:round}
+#fons .sf{position:absolute;border-radius:50%;left:var(--x);top:var(--y);width:var(--s);height:var(--s);margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+  --c1:color-mix(in srgb,var(--c) 38%,#fff);--c2:color-mix(in srgb,var(--c) 56%,#000);
+  background:radial-gradient(circle at 33% 28%,#fff 0,var(--c1) 12%,var(--c) 46%,var(--c2) 100%);
+  box-shadow:inset -3px -5px 10px -4px rgba(0,0,0,.28),0 0 calc(var(--s) * .55) calc(var(--s) * .07) color-mix(in srgb,var(--c) 52%,transparent);
+  filter:blur(var(--b));opacity:var(--o)}
+
+/* ---------- v4 · Llum ----------
+   Azul = «gat» y los datos; coral = lo elegido (destino de «banc», aviso). Neón en SVG con capas de trazo (sin filtros en lo largo);
+   solo los grupos pequeños y estáticos llevan drop-shadow. Las encesas solo corren al avanzar (body[data-dir="back"] las quita). */
+#scene .s1 .down{filter:drop-shadow(0 0 6px rgba(47,85,212,.6))}
+#scene .s1 .down .stroke{stroke:var(--blue);stroke-opacity:.95;stroke-width:5px}
+.nb{filter:drop-shadow(0 0 6px rgba(47,85,212,.62))}
+.nb .hop{stroke:var(--blue)}
+.fl{transform-box:fill-box;transform-origin:center;opacity:0}
+#hophead{stroke:#E8573A;filter:drop-shadow(0 0 6px rgba(210,70,42,.7))}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"><script src="IA-S1-ritme.js"></script></head><body data-animation="vectors"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Espai / Av Pàg / Re Pàg     Inici: reinicia     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "Dels tokens als vectors",
+  "tokenLabel": "token",
+  "token": "gat",
+  "vectorCaption": "Cada token es converteix en una llista de números.",
+  "vectorNote": "… i molts més: centenars o milers de números",
+  "gpt2": "GPT-2 fa servir 768 números per token",
+  "vectorValues": [
+    "−0,73",
+    "0,18",
+    "0,52",
+    "−0,04",
+    "0,88",
+    "−0,36",
+    "0,21",
+    "−0,59",
+    "0,06",
+    "0,67",
+    "−0,12",
+    "0,41"
+  ],
+  "mapCaption": "Cada token és un punt en un mapa de significats.",
+  "mapNote": "Projecció simplificada en dues dimensions.",
+  "nearCaption": "El que s'assembla queda a prop.",
+  "contextCaption": "El context mou el punt: el mateix mot, dos significats.",
+  "contextNote": "Simplificat: canvia la representació contextual; el vector inicial es manté.",
+  "contexts": [
+    "Seure en un banc del parc",
+    "Obrir un compte al banc"
+  ],
+  "finalCaption": "Simplificat: centenars o milers de dimensions; aquí, només dues.",
+  "finalNote": "El mapa i els números d'aquesta animació són il·lustratius.",
+  "dimsHereLabel": "Aquest mapa",
+  "dimsHereValue": "2 dimensions",
+  "dimsRealLabel": "Mapa real",
+  "dimsRealValue": "centenars o milers",
+  "groups": [
+    "Animals",
+    "Ciutats",
+    "Aprendre",
+    "Mobles",
+    "Diners"
+  ],
+  "animals": [
+    "gat",
+    "gos",
+    "cavall"
+  ],
+  "cities": [
+    "Barcelona",
+    "Girona",
+    "Lleida"
+  ],
+  "learning": [
+    "aprendre",
+    "estudiar",
+    "practicar"
+  ],
+  "furniture": [
+    "cadira",
+    "taula",
+    "banc"
+  ],
+  "money": [
+    "diners",
+    "compte",
+    "préstec"
+  ]
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current=0, totalSteps=1, drawStep, generation=0;
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE='cubic-bezier(.2,.8,.2,1)';
+/* Una animació curta; amb «reduir moviment» no se'n fa cap i es pinta l'estat final. */
+function A(el,frames,o={}){if(!el||reduced())return null;return el.animate(frames,{duration:520,easing:EASE,fill:'both',...o});}
+function show(html,caption,note,stamp,anim){
+  $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+  if(anim&&caption)A($('#caption'),[{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'}],{duration:520});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ A($('#title'),[{opacity:.85,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:600});
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* ======================= Peces gràfiques ======================= */
+const $$ = s => [...document.querySelectorAll(s)];
+const draw=(el,delay=0,dur=500)=>A(el,[{strokeDashoffset:1},{strokeDashoffset:0}],{delay,duration:dur});
+const fade=(el,delay=0,dur=420)=>A(el,[{opacity:0},{opacity:1}],{delay,duration:dur});
+/* Una tecla que cau sobre la taula: gira des de dalt (com a A1). */
+const fall=(el,delay=0,dur=620)=>A(el,[{opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'},{opacity:1,transform:'none'}],{delay,duration:dur});
+/* v4 · Llum: encesa de llegada (CSS, solo al avanzar) */
+const enc=(el,color,d)=>{if(!el)return;el.setAttribute('data-encen','');el.setAttribute('data-llum',color);el.style.setProperty('--d',d+'ms');};
+
+/* ---------- Defs: esferes (degradat radial, llum a dalt a l'esquerra), lloses i ombres ---------- */
+const NOMS=['blue','violet','green','amber','coral','ink'];
+const EDGE={blue:'#9FB4F1',violet:'#B7A4EE',green:'#8DCBAD',amber:'#DDB963',coral:'#E8A88E'};
+function defs(){
+  let h='<defs>';
+  NOMS.forEach(n=>{
+    h+=`<radialGradient id="hl-${n}"><stop offset="0" style="stop-color:color-mix(in srgb,var(--${n}) 38%,#fff);stop-opacity:.95"/><stop offset=".3" style="stop-color:var(--${n});stop-opacity:.52"/><stop offset=".65" style="stop-color:var(--${n});stop-opacity:.15"/><stop offset="1" style="stop-color:var(--${n});stop-opacity:0"/></radialGradient><radialGradient id="hs-${n}"><stop offset="0" style="stop-color:var(--${n});stop-opacity:.95"/><stop offset=".4" style="stop-color:var(--${n});stop-opacity:.5"/><stop offset=".75" style="stop-color:var(--${n});stop-opacity:.12"/><stop offset="1" style="stop-color:var(--${n});stop-opacity:0"/></radialGradient><radialGradient id="se-${n}" cx=".5" cy=".5" r=".5" fx=".38" fy=".32"><stop offset="0" stop-color="#fff"/><stop offset=".3" style="stop-color:color-mix(in srgb,var(--${n}) 42%,#fff)"/><stop offset=".72" style="stop-color:var(--${n})"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--${n}) 80%,#000)"/></radialGradient>`;
+    h+=`<radialGradient id="sp-${n}" cx=".5" cy=".5" r=".5" fx=".34" fy=".28"><stop offset="0" style="stop-color:color-mix(in srgb,var(--${n}) 30%,#fff)"/><stop offset=".42" style="stop-color:var(--${n})"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--${n}) 56%,#000)"/></radialGradient>`;
+    if(n!=='ink'){
+      h+=`<linearGradient id="pl-${n}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,var(--${n}-soft) 55%,#fff)"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--${n}-soft) 82%,var(--${n}))"/></linearGradient>`;
+      h+=`<linearGradient id="rim-${n}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".4" stop-color="#fff" stop-opacity=".3"/><stop offset="1" style="stop-color:var(--${n})" stop-opacity=".4"/></linearGradient>`;
+    }
+  });
+  return h+`<radialGradient id="core"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><radialGradient id="shd"><stop offset="0" stop-color="#15171C" stop-opacity=".62"/><stop offset=".6" stop-color="#15171C" stop-opacity=".24"/><stop offset="1" stop-color="#15171C" stop-opacity="0"/></radialGradient><filter id="bl9" x="-15%" y="-30%" width="130%" height="170%"><feGaussianBlur stdDeviation="9"/></filter></defs>`;
+}
+/* Bola amb brillo y sombra de contacto (la sombra va a la derecha y abajo: la luz viene de arriba a la izquierda). */
+function ballSVG(n,r,o={}){
+  const hx=(-r*.36).toFixed(1),hy=(-r*.42).toFixed(1);
+  /* v4: halo suave del color (se enciende al caer) y, en modo hero, esfera emisora con núcleo blanco (LED) */
+  const halo=o.noHalo?'':`<circle class="hl" r="${(r*(o.hero?3.1:2.4)).toFixed(1)}" fill="url(#hl-${n})"/>`;
+  const core=o.hero?`<circle cx="${(-r*.1).toFixed(1)}" cy="${(-r*.12).toFixed(1)}" r="${(r*.7).toFixed(1)}" fill="url(#core)"/>`:'';
+  return `<g class="ball">${halo}<circle r="${r}" fill="url(#${o.hero?'se':'sp'}-${n})"/>${core}<ellipse cx="${hx}" cy="${hy}" rx="${(r*.34).toFixed(1)}" ry="${(r*.2).toFixed(1)}" fill="#fff" fill-opacity=".72" transform="rotate(-38 ${hx} ${hy})"/></g>`;
+}
+const shadowSVG=r=>`<ellipse class="csh" cx="${(r*.34).toFixed(1)}" cy="${(r*.98).toFixed(1)}" rx="${(r*1.2).toFixed(1)}" ry="${(r*.4).toFixed(1)}" fill="url(#shd)"/>`;
+const sphere=(n,r=15,o={})=>shadowSVG(r)+ballSVG(n,r,o);
+/* La bola cau sobre el pla: rebot petit, l'ombra de contacte creix i el nom apareix. */
+function dropBall(p,delay,h=60,dur=640){
+  const ball=p.querySelector('.ball'),sh=p.querySelector('.csh'),tx=p.querySelector('text');
+  A(ball,[{transform:`translateY(${-h}px)`,easing:'cubic-bezier(.55,0,.9,.55)'},
+          {transform:'translateY(0)',offset:.6,easing:'cubic-bezier(.1,.45,.4,1)'},
+          {transform:`translateY(${(-h*.12).toFixed(1)}px)`,offset:.8,easing:'cubic-bezier(.55,0,.9,.55)'},
+          {transform:'translateY(0)'}],{delay,duration:dur,easing:'linear'});
+  A(ball,[{opacity:0},{opacity:1}],{delay,duration:Math.min(220,dur*.4)});
+  A(sh,[{opacity:0,transform:'scale(.35)'},{opacity:1,transform:'scale(1)'}],{delay:delay+dur*.3,duration:dur*.5});
+  A(tx,[{opacity:0},{opacity:1}],{delay:delay+dur*.35,duration:420});
+  A(p.querySelector('.hl'),[{opacity:0},{opacity:1}],{delay:delay+dur*.45,duration:520});
+}
+
+/* Marcadors: ara són esferes. Taca suau: una el·lipse amb una deformació lleu, perquè no sembli un cercle de plantilla. */
+function blobD(seed,rx=368,ry=100){
+  const n=96,p=[];
+  for(let i=0;i<n;i++){
+    const t=i/n*Math.PI*2;
+    const k=1+.03*Math.sin(2*t+seed*1.9)+.02*Math.sin(3*t+seed*2.7)+.012*Math.sin(5*t+seed);
+    p.push((rx*k*Math.cos(t)).toFixed(1)+' '+(ry*k*Math.sin(t)).toFixed(1));
+  }
+  return 'M'+p.join('L')+'Z';
+}
+/* Llosa d'un grup: ombra difuminada, cantell inferior i cara amb degradat i vora il·luminada. */
+function slab(seed,rx,ry,n){
+  const d=blobD(seed,rx,ry);
+  return `<g class="slab"><path d="${d}" fill="#15171C" fill-opacity=".30" transform="translate(16 30)" filter="url(#bl9)"/><path d="${d}" style="fill:var(--${n})" fill-opacity=".46" transform="translate(6 28)" filter="url(#bl9)"/><path d="${d}" fill="${EDGE[n]}" transform="translate(2 13)"/><path d="${d}" fill="url(#pl-${n})" stroke="url(#rim-${n})" stroke-width="3"/></g>`;
+}
+/* Eixos com a barres amb gruix: ombra, cos i brillo; «top» és on comença l'eix vertical. */
+function axes(top){
+  const L=`M20 ${top} V596 H1764`;
+  return `<g class="axes"><g transform="translate(6 13)"><path class="rod-sh axis" pathLength="1" stroke-opacity=".07" stroke-width="22" d="${L}"/><path class="rod-sh axis" pathLength="1" stroke-opacity=".10" stroke-width="14" d="${L}"/><path class="rod-sh axis" pathLength="1" stroke-opacity=".15" stroke-width="8" d="${L}"/></g>`
+    +`<path class="rod axis" pathLength="1" d="${L}"/><path class="rod-hi axis" pathLength="1" transform="translate(-1.5 -1.5)" d="${L}"/>`
+    +`<path class="tip" d="M20 ${top-5}L36 ${top+22}L4 ${top+22}Z"/><path class="tip" d="M1770 596L1744 580L1744 612Z"/></g>`;
+}
+const GROUPS=[
+  {label:TEXTOS.groups[0],words:TEXTOS.animals,color:'--blue',seed:1,offs:[[-230,0],[-60,-14],[40,46]]},
+  {label:TEXTOS.groups[1],words:TEXTOS.cities,color:'--violet',seed:2,offs:[[-20,50],[10,-14],[-230,12]]},
+  {label:TEXTOS.groups[2],words:TEXTOS.learning,color:'--green',seed:3,offs:[[-230,-4],[-100,52],[40,-14]]},
+  {label:TEXTOS.groups[3],words:TEXTOS.furniture,color:'--amber',seed:4,offs:[[-230,6],[-40,-16],[60,48]]}
+];
+function ptMarkup(word,x,y,color,extra=''){
+  return `<g class="pt"${extra} data-x="${x}" data-y="${y}" style="transform:translate(${x}px,${y}px)"><g class="pt-in">${sphere(color.slice(2),15,word===TEXTOS.token?{hero:true}:{})}<text class="w" x="28" y="0" dy=".36em">${esc(word)}</text></g></g>`;
+}
+function groupMarkup(g,cx,cy){
+  const n=g.color.slice(2);
+  let h=`<g class="grp" style="transform:translate(${cx}px,${cy}px)">${slab(g.seed,368,98,n)}<text class="kicker" x="-216" y="-52">${esc(g.label)}</text>`;
+  g.words.forEach((w,j)=>h+=ptMarkup(w,g.offs[j][0],g.offs[j][1],g.color,w===TEXTOS.token?' data-gat="1"':''));
+  return h+'</g>';
+}
+const COLS=[420,1356];
+function mapGroups(rows){return GROUPS.map((g,i)=>groupMarkup(g,COLS[i%2],rows[i>>1])).join('');}
+/* Entrada dels grups: la llosa cau sobre la taula, després el nom i les boles, esglaonats. */
+function introGroups(delay0=0,gap=90,skipGat=false){
+  $$('.grp').forEach((g,k)=>{
+    const d=delay0+k*gap;
+    A(g.querySelector('.slab'),[{opacity:0,transform:'translateY(-44px) scale(.95)'},{opacity:1,transform:'translateY(0) scale(1)'}],{delay:d,duration:600});
+    fade(g.querySelector('.kicker'),d+240,400);
+    g.querySelectorAll('.pt').forEach((p,j)=>{if(skipGat&&p.dataset.gat)return;dropBall(p,d+300+j*90,46,560);});
+  });
+}
+const cellsHTML=()=>TEXTOS.vectorValues.map(n=>`<div class="cell">${esc(n)}</div>`).join('');
+const tick=(cx,cy)=>`<g class="tick" transform="translate(${cx} ${cy})">${ballSVG('blue',10)}</g>`;
+
+/* ======================= Passos ======================= */
+/* Guía de neón: dos capas anchas y tenues, el trazo azul y un núcleo claro (todas con el mismo nombre para dibujarse a la vez) */
+const neon=(cls,d)=>`<path class="guide ${cls}" pathLength="1" style="stroke-width:20px;stroke-opacity:.08" d="${d}"/><path class="guide ${cls}" pathLength="1" style="stroke-width:11px;stroke-opacity:.16" d="${d}"/><path class="guide ${cls}" pathLength="1" style="stroke-opacity:.95" d="${d}"/><path class="guide ${cls}" pathLength="1" style="stroke:#fff;stroke-width:1.6px;stroke-opacity:.8" d="${d}"/>`;
+const GAT={x:888,y:300};            // posició del punt «gat» al pas 2
+const ROWS3=[128,468], ROWS5=[232,470];
+
+function step1(anim){
+  show(`<div class="s1">
+    <div class="kicker">${esc(TEXTOS.tokenLabel)}</div>
+    <div class="card edge-blue tok">${esc(TEXTOS.token)}</div>
+    <svg class="down" width="48" height="80" viewBox="0 0 48 80" aria-hidden="true"><path class="stroke" pathLength="1" style="stroke-dasharray:1 2" d="M24 4V70"/><path class="stroke head" d="M8 54L24 70L40 54"/></svg>
+    <div class="card tint-blue tray">${cellsHTML()}<svg class="ell" width="56" height="136" viewBox="0 0 56 136" aria-hidden="true"><circle cx="8" cy="68" r="5"/><circle cx="28" cy="68" r="5"/><circle cx="48" cy="68" r="5"/></svg></div>
+    <div class="gpt">${esc(TEXTOS.gpt2).replace('768','<b>768</b>')}</div>
+  </div>`,TEXTOS.vectorCaption,TEXTOS.vectorNote,TEXTOS.illustrative,anim);
+  if(!anim)return;
+  const up=(el,d,dy=-20)=>A(el,[{opacity:0,transform:`translateY(${dy}px)`},{opacity:1,transform:'translateY(0)'}],{delay:d,duration:480});
+  up($('.s1 .kicker'),0);fall($('.tok'),40,640);enc($('.tok'),'blue',440);
+  draw($('.down path'),380,400);fade($('.down .head'),680,200);
+  A($('.tray'),[{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'translateY(0)'}],{delay:300,duration:520});
+  $$('.cell').forEach((c,k)=>{fall(c,520+k*50,560);c.setAttribute('data-reflex','');c.style.setProperty('--dr',(1000+k*55)+'ms');});
+  up($('.ell'),520+12*50,20);
+  fade($('.gpt'),1150,450);
+}
+
+function step2(anim){
+  const {x,y}=GAT;
+  show(`<div class="row2"><div class="card edge-blue chip2">${esc(TEXTOS.token)}</div><div class="card tint-blue tray sm">${cellsHTML()}</div></div>
+  <svg class="map-svg" viewBox="0 0 1776 612" aria-hidden="true">${defs()}${axes(0)}
+    ${neon('gx',`M38 ${y}H${x-34}`)}${neon('gy',`M${x} ${y+34}V580`)}
+    ${tick(20,y)}${tick(x,596)}
+    <g class="nb"><path class="hop line" pathLength="1" d="M${x} 142V264"/><path class="hop head" d="M${x-16} 248L${x} 264L${x+16} 248"/></g>
+    <ellipse class="ring" cx="${x}" cy="${y+28}" rx="26" ry="10"/>
+    <g class="pt" style="transform:translate(${x}px,${y}px)"><g class="pt-in" style="transform:scale(1.4)">${sphere('blue',15,{hero:true})}<text class="w hero" x="28" y="0" dy=".36em">${esc(TEXTOS.token)}</text></g></g>
+  </svg>`,TEXTOS.mapCaption,TEXTOS.mapNote,TEXTOS.illustrative,anim);
+  if(!anim)return;
+  A($('.row2'),[{transform:'translateY(190px)'},{transform:'translateY(0)'}],{duration:560});
+  $$('.axis').forEach(a=>draw(a,80,520));
+  $$('.axes .tip').forEach(t=>fade(t,380,300));
+  draw($('.hop.line'),420,380);fade($('.hop.head'),700,160);
+  dropBall($('.pt'),760,80,720);enc($('.pt .ball'),'blue',1190);
+  A($('.ring'),[{opacity:0,transform:'scale(.5)'},{opacity:.7,transform:'scale(1)',offset:.12},{opacity:0,transform:'scale(3.2)'}],{delay:1150,duration:700});
+  $$('.gx').forEach(e=>draw(e,1000,420));$$('.gy').forEach(e=>draw(e,1000,420));
+  $$('.tick').forEach(t=>fade(t,1300,260));
+}
+
+function step3(anim){
+  show(`<svg class="map-svg" viewBox="0 0 1776 612" aria-hidden="true">${defs()}${axes(0)}${mapGroups(ROWS3)}</svg>`,TEXTOS.nearCaption,TEXTOS.mapNote,TEXTOS.illustrative,anim);
+  if(!anim)return;
+  introGroups(260,90,true);
+  // «gat» ve del centre del pas 2 i s'instal·la al seu veïnat
+  const gat=$('.pt[data-gat]'),x=+gat.dataset.x,y=+gat.dataset.y;
+  const cx=COLS[0],cy=ROWS3[0];
+  A(gat,[{transform:`translate(${GAT.x-cx}px,${GAT.y-cy}px)`},{transform:`translate(${x}px,${y}px)`}],{duration:780});
+  A(gat.querySelector('.pt-in'),[{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:780});
+  enc(gat.querySelector('.ball'),'blue',840);
+}
+
+/* ----- Pas 4: banc ----- */
+const MOB4={cx:420,cy:372}, DIN4={cx:1356,cy:372};
+const BANC=[{x:MOB4.cx+100,y:MOB4.cy+50},{x:DIN4.cx-150,y:DIN4.cy+34}];   // origen i destí
+const HOP={c1:[BANC[0].x,150],c2:[BANC[1].x,150]};
+const BR=18.75, SH={x:6,y:18};   // radi de la bola «banc» (15 × 1,25) i on cau la seva ombra
+function cubic(p0,c1,c2,p3,t){const u=1-t;return [u*u*u*p0[0]+3*u*u*t*c1[0]+3*u*t*t*c2[0]+t*t*t*p3[0],u*u*u*p0[1]+3*u*u*t*c1[1]+3*u*t*t*c2[1]+t*t*t*p3[1]];}
+/* La trajectòria de la bola és l'arc: 40 mostres; l'arc visible comença fora de la bola d'origen i acaba just damunt la de destí. */
+const NS=40, PTS=Array.from({length:NS+1},(_,i)=>cubic([BANC[0].x,BANC[0].y],HOP.c1,HOP.c2,[BANC[1].x,BANC[1].y],i/NS));
+const dd=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+let I0=0;while(dd(PTS[I0],PTS[0])<BR+10)I0++;
+let I1=NS;while(dd(PTS[I1],PTS[NS])<BR+16)I1--;
+const ARC=PTS.slice(I0,I1+1), CUM=[0];
+for(let i=1;i<ARC.length;i++)CUM.push(CUM[i-1]+dd(ARC[i],ARC[i-1]));
+const ARC_D='M'+ARC.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join('L');
+const frac=i=>i<=I0?0:(i>=I1?1:CUM[i-I0]/CUM[CUM.length-1]);
+const GY=i=>BANC[0].y+(BANC[1].y-BANC[0].y)*((PTS[i][0]-BANC[0].x)/(BANC[1].x-BANC[0].x));   // el terra sota la bola
+const HMAX=Math.max(...PTS.map((p,i)=>GY(i)-p[1]));
+const rv=(f,r)=>r?f.slice().reverse():f;
+const hopFrames=r=>rv(PTS.map(p=>({transform:`translate(${p[0].toFixed(1)}px,${p[1].toFixed(1)}px)`})),r);
+const shFrames=r=>rv(PTS.map((p,i)=>{const h=Math.max(0,GY(i)-p[1])/HMAX;return {transform:`translate(${(p[0]+SH.x).toFixed(1)}px,${(GY(i)+SH.y).toFixed(1)}px) scale(${(1-.5*h).toFixed(3)})`,opacity:(1-.6*h).toFixed(2)};}),r);
+const arcFrames=r=>rv(PTS.map((p,i)=>({strokeDashoffset:(1-frac(i)).toFixed(4)})),r);
+const gndFrames=r=>rv(PTS.map(p=>({strokeDashoffset:(1-(p[0]-BANC[0].x)/(BANC[1].x-BANC[0].x)).toFixed(4)})),r);
+const T4=i=>`translate(${BANC[i].x}px,${BANC[i].y}px)`;
+const TS=i=>`translate(${BANC[i].x+SH.x}px,${BANC[i].y+SH.y}px) scale(1)`;
+const chev=(()=>{const e=ARC[ARC.length-1],q=ARC[ARC.length-3],L=Math.hypot(e[0]-q[0],e[1]-q[1]),ux=(e[0]-q[0])/L,uy=(e[1]-q[1])/L,w=(a)=>{const c=Math.cos(a),s=Math.sin(a);return [e[0]-24*(ux*c-uy*s),e[1]-24*(ux*s+uy*c)];};const a=w(.62),b=w(-.62);return `M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${e[0].toFixed(1)} ${e[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;})();
+function split(s){return esc(s).replace(/\bbanc\b/,'<b>banc</b>');}
+function step4(anim){
+  const tabs=[['--amber','--amber-soft',MOB4.cx-384,'201,133,18'],['--coral','--coral-soft',DIN4.cx-384,'210,70,42']];
+  const b0=BANC[0],b1=BANC[1];
+  const mobles=(()=>{
+    let h=`<g class="grp" style="transform:translate(${MOB4.cx}px,${MOB4.cy}px)">${slab(4,368,116,'amber')}<text class="kicker" x="-216" y="-62">${esc(TEXTOS.groups[3])}</text>`;
+    h+=ptMarkup(TEXTOS.furniture[0],-230,-12,'--amber');
+    h+=ptMarkup(TEXTOS.furniture[1],-40,-34,'--amber');
+    return h+'</g>';})();
+  const diners=(()=>{
+    let h=`<g class="grp" style="transform:translate(${DIN4.cx}px,${DIN4.cy}px)">${slab(5,368,116,'coral')}<text class="kicker" x="110" y="-62">${esc(TEXTOS.groups[4])}</text>`;
+    h+=ptMarkup(TEXTOS.money[0],-10,-30,'--coral');
+    h+=ptMarkup(TEXTOS.money[1],130,24,'--coral');
+    h+=ptMarkup(TEXTOS.money[2],70,84,'--coral');
+    return h+'</g>';})();
+  const tabsHTML=TEXTOS.contexts.map((w,i)=>`<button class="card tab" data-interactive data-context="${i}" data-active="${i===0}" aria-pressed="${i===0}" style="left:${tabs[i][2]}px;--tabc:var(${tabs[i][0]});--tabs:var(${tabs[i][1]});--tcg:${tabs[i][3]}"><span>${split(w)}</span></button>`).join('');
+  const ghost=`<g class="ghost" style="transform:translate(${b0.x}px,${b0.y}px);opacity:0"><circle r="${BR}"/></g>`;
+  const gnd=`M${b0.x+SH.x} ${b0.y+SH.y}L${b1.x+SH.x} ${b1.y+SH.y}`;
+  const arcP=st=>`<path class="hop line hp arc" pathLength="1" style="stroke-dashoffset:1;${st}" d="${ARC_D}"/>`;
+  const gp=(w,o)=>`<path class="hop line gs hp gnd" pathLength="1" style="stroke-dashoffset:1;stroke-width:${w}px;stroke-opacity:${o}" d="${gnd}"/>`;
+  show(`${tabsHTML}<svg class="map-svg" viewBox="0 0 1776 612" aria-hidden="true">${defs()}<defs><linearGradient id="comet" gradientUnits="userSpaceOnUse" x1="${ARC[0][0].toFixed(1)}" y1="0" x2="${ARC[ARC.length-1][0].toFixed(1)}" y2="0"><stop offset="0" stop-color="#D2462A" stop-opacity=".34"/><stop offset=".55" stop-color="#E4512F"/><stop offset="1" stop-color="#FF8A66"/></linearGradient></defs>${axes(124)}${mobles}${diners}
+    ${gp(14,.05)}${gp(8,.07)}${gp(4,.10)}
+    ${ghost}
+    ${arcP('stroke:url(#comet);stroke-opacity:.20;stroke-width:34px')}${arcP('stroke:url(#comet);stroke-opacity:.38;stroke-width:18px')}${arcP('stroke:url(#comet);stroke-width:9px')}${arcP('stroke:#fff;stroke-opacity:.92;stroke-width:3px')}
+    <path class="hop head" id="hophead" style="opacity:0" d="${chev}"/>
+    <g id="bancSh" style="transform:${TS(0)}"><ellipse rx="${(BR*1.2).toFixed(1)}" ry="${(BR*.4).toFixed(1)}" fill="url(#shd)"/></g>
+    <g id="banc" style="transform:${T4(0)}"><g class="pt-in" style="transform:scale(1.25)"><circle id="hA" r="40" fill="url(#hs-amber)" style="opacity:1"/><circle id="hC" r="40" fill="url(#hs-coral)" style="opacity:0"/><ellipse id="fA" class="fl" cx="0" cy="24" rx="24" ry="9" fill="none" stroke-width="4" style="stroke:var(--amber)"/><ellipse id="fC" class="fl" cx="0" cy="24" rx="24" ry="9" fill="none" stroke-width="4" style="stroke:var(--coral)"/>${ballSVG('ink',15,{noHalo:true})}<text class="w hero" x="28" y="0" dy=".36em">${esc(TEXTOS.furniture[2])}</text></g></g>
+  </svg>`,TEXTOS.contextCaption,TEXTOS.contextNote,TEXTOS.illustrative,anim);
+  const st={cur:0};
+  function paint(which){   // estat final, sense moviment
+    st.cur=which;
+    $('#banc').style.transform=T4(which);$('#bancSh').style.transform=TS(which);
+    $$('.hp').forEach(p=>p.style.strokeDashoffset=which?0:1);
+    $('#hophead').style.opacity=which?1:0;$('.ghost').style.opacity=which?1:0;
+    $('#hA').style.opacity=which?0:1;$('#hC').style.opacity=which?1:0;
+    $$('.tab').forEach((b,i)=>{b.dataset.active=String(i===which);b.setAttribute('aria-pressed',String(i===which));});
+  }
+  function choose(which){
+    if(st.cur===which)return;
+    if(reduced()){paint(which);return;}
+    const banc=$('#banc'),bsh=$('#bancSh'),head=$('#hophead'),ghostEl=$('.ghost'),hp=$$('.hp');
+    const m=new DOMMatrix(getComputedStyle(banc).transform), ms=new DOMMatrix(getComputedStyle(bsh).transform), mo=getComputedStyle(bsh).opacity;
+    const hA=$('#hA'),hC=$('#hC'),fA=$('#fA'),fC=$('#fC'),oA=getComputedStyle(hA).opacity,oC=getComputedStyle(hC).opacity;
+    [banc,bsh,head,ghostEl,hA,hC,fA,fC,...hp].forEach(e=>e.getAnimations().forEach(a=>a.cancel()));
+    const start=BANC[st.cur],mid=Math.hypot(m.e-start.x,m.f-start.y)>2;
+    const forward=which===1, EZ='cubic-bezier(.45,.05,.25,1)';
+    paint(which);
+    A(banc,mid?[{transform:`translate(${m.e}px,${m.f}px)`},{transform:T4(which)}]:hopFrames(!forward),{duration:760,easing:EZ});
+    A(bsh,mid?[{transform:`translate(${ms.e}px,${ms.f}px) scale(${ms.a})`,opacity:mo},{transform:TS(which),opacity:1}]:shFrames(!forward),{duration:760,easing:EZ});
+    hp.forEach(p=>A(p,mid?[{strokeDashoffset:forward?1:0},{strokeDashoffset:forward?0:1}]:(p.classList.contains('gnd')?gndFrames(!forward):arcFrames(!forward)),{duration:760,easing:EZ}));
+    A(head,[{opacity:forward?0:1},{opacity:forward?1:0}],{duration:forward?180:140,delay:forward?620:0});
+    A(ghostEl,[{opacity:forward?0:1},{opacity:forward?1:0}],{duration:360,delay:forward?100:300});
+    /* v4: el halo cambia de color durante el salto y, al llegar, un anillo de luz del color del contexto */
+    A(hA,[{opacity:oA},{opacity:forward?0:1}],{duration:760,easing:EZ});
+    A(hC,[{opacity:oC},{opacity:forward?1:0}],{duration:760,easing:EZ});
+    A(forward?fC:fA,[{opacity:0,transform:'scale(.6)'},{opacity:.95,transform:'scale(1.2)',offset:.2},{opacity:0,transform:'scale(3.4)'}],{delay:600,duration:900,easing:'ease-out'});
+  }
+  $$('.tab').forEach((b,i)=>b.onclick=()=>choose(i));
+  if(!anim||reduced()){paint(1);return;}
+  // entrada: les etiquetes i els dos veïnats; després, el banc fa el salt sol
+  $$('.tab').forEach((b,i)=>A(b,[{opacity:0,transform:'translateY(-16px)'},{opacity:1,transform:'translateY(0)'}],{delay:i*80,duration:460}));
+  $$('.grp').forEach((g,k)=>{
+    A(g.querySelector('.slab'),[{opacity:0,transform:'translateY(-40px) scale(.95)'},{opacity:1,transform:'translateY(0) scale(1)'}],{delay:120+k*80,duration:560});
+    fade(g.querySelector('.kicker'),300+k*80,360);
+    g.querySelectorAll('.pt').forEach((p,j)=>dropBall(p,360+k*80+j*70,40,520));
+  });
+  fade($('#banc'),240,360);fade($('#bancSh'),240,360);
+  const g=generation;
+  setTimeout(()=>{if(g===generation)choose(1);},900);
+}
+
+/* ----- Pas 5: mapa complet + avís ----- */
+function step5(anim){
+  const icon2d=`<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><path d="M12 8V52H56"/><path d="M4 18L12 8L20 18M46 44L56 52L46 60" style="display:none"/><circle cx="34" cy="28" r="6"/></svg>`;
+  const iconMany=`<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 32V6M32 32L55 19M32 32L55 45M32 32V58M32 32L9 45M32 32L9 19"/><circle cx="32" cy="32" r="5"/></svg>`;
+  show(`<div class="card tint-coral banner" data-reflex style="--dr:800ms"><i class="rv a"></i><i class="rv b"></i><i class="rv c"></i><i class="rv d"></i>
+      <div class="half"><span class="ic" data-encen data-llum="coral" style="--d:900ms">${icon2d}</span><div><span class="kicker">${esc(TEXTOS.dimsHereLabel)}</span><span class="val">${esc(TEXTOS.dimsHereValue)}</span></div></div>
+      <div class="sep"></div>
+      <div class="half"><span class="ic" data-encen data-llum="coral" style="--d:1060ms">${iconMany}</span><div><span class="kicker">${esc(TEXTOS.dimsRealLabel)}</span><span class="val">${esc(TEXTOS.dimsRealValue)}</span></div></div>
+    </div>
+    <svg class="map-svg" viewBox="0 0 1776 612" aria-hidden="true">${defs()}${axes(128)}${mapGroups(ROWS5)}</svg>`,TEXTOS.finalCaption,TEXTOS.finalNote,TEXTOS.illustrative,anim);
+  if(!anim)return;
+  fall($('.banner'),0,640);
+  introGroups(280,80);
+}
+
+function renderStep(step,prev){
+  const anim=!reduced()&&step>=prev;   // al retrocedir (o amb «reduir moviment») es pinta l'estat final
+  [step1,step2,step3,step4,step5][step](anim);
+}
+
+/* Fons temàtic (el crida IA-S1-comu.js): una constel·lació d'esferes en profunditat, a dalt a la dreta i als costats.
+   Cada cúmul és d'un color de grup (blau animals, violeta ciutats, verd aprendre, ambre mobles, corall diners):
+   el que s'assembla queda a prop. Mida i desenfocament donen la distància; cada cúmul es mou diferent (paral·laxi). Sense text. */
+window.fonsIA=function(capa){
+  const CL=[
+    {c:'--blue',k:-6,p:[[1470,140,96,1.2,.92],[1368,66,28,1.2,.8],[1600,176,32,.8,.88],[1344,214,20,1.8,.7]],l:[[0,1],[0,2],[0,3]]},
+    {c:'--violet',k:-12,p:[[1766,226,120,3.2,.85],[1866,138,48,.8,.92],[1722,142,26,1.2,.8],[1912,214,44,2,.8],[1650,262,20,1.8,.6]],l:[[0,1],[0,2],[0,3],[0,4]]},
+    {c:'--green',k:0,p:[[1290,196,70,1.4,.85],[1398,138,32,.8,.85],[1214,118,24,1.6,.75],[1352,288,42,2.6,.7],[1170,236,18,2.2,.6]],l:[[0,1],[0,2],[0,3],[0,4]]},
+    {c:'--coral',k:22,p:[[1900,62,44,.8,.95],[1250,48,16,1.6,.7],[1316,20,12,1.6,.6]],l:[]},
+    {c:'--amber',k:22,p:[[1918,498,150,9,.8],[1928,650,60,3,.75]],l:[[0,1]]},
+    {c:'--blue',k:22,p:[[1934,790,150,10,.8],[1906,892,40,2,.75]],l:[[0,1]]},
+    {c:'--green',k:12,p:[[-14,430,190,9,.85],[-26,650,86,4,.8]],l:[[0,1]]},
+    {c:'--violet',k:8,p:[[8,790,120,6,.8]],l:[]}
+  ];
+  capa.innerHTML=CL.map(cl=>`<div class="cl" style="--k:${cl.k};--c:var(${cl.c})"><svg viewBox="0 0 1920 1080">${cl.l.map(([a,b])=>`<line x1="${cl.p[a][0]}" y1="${cl.p[a][1]}" x2="${cl.p[b][0]}" y2="${cl.p[b][1]}"/>`).join('')}</svg>${cl.p.map(([x,y,s,b,o])=>`<i class="sf" style="--x:${x}px;--y:${y}px;--s:${s}px;--b:${b}px;--o:${o}"></i>`).join('')}</div>`).join('');
+};
+boot(5,renderStep);
+</script><script src="IA-S1-comu.js"></script></body></html>

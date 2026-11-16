@@ -1,0 +1,788 @@
+<!doctype html>
+<!--
+A7: demostració íntegrament simulada; no afirma que cap model concret produeixi aquestes respostes.
+Referències: noms, títols, anys i catàleg creats per a la demostració. Cap autor és presentat com a investigador real.
+Les coincidències i els errors del catàleg només pertanyen a aquest catàleg fictici; no s'ha executat cap cerca bibliogràfica real.
+Probabilitats (48/32/20 i 46/34/20), anys, edat i activitats: valors il·lustratius, marcats en pantalla.
+Data de tall: esquema sense cap data comercial. El context i les eines poden aportar informació posterior a l'entrenament.
+Complacència i biaixos: exemples possibles, no comportaments universals. La petició de direcció/recepció no assigna cap gènere.
+Passos de càlcul: esquema docent visible, no exposició del raonament intern d'un model. Les etiquetes de seguretat no demostren verificació.
+Privacitat: Marta Puig és un personatge fictici. L'interruptor de xat temporal és conceptual, sense atribuir garanties a cap servei.
+Material docent local, versió 2 (redisseny visual: xat, targetes i insígnies; mateixos textos i dades). Totes les dades il·lustratives es marquen en pantalla.
+v4 (13-10-2026): llum. Insígnies amb halo del color de l'estat (verd/ambre/corall) i encesa en caure; avatar del model amb halo blau; reflex a les tres targetes del pas 1;
+barres guanyadores corall amb punt de llum (4); barrera de la data de tall amb llum corall (5); resposta d'elogi (ambre) i de crítica (corall) amb llum de sota (6-7);
+fitxes Home/Dona (8); «≠ 24» i «8 activitats» (9); Comprovat/Suposició/No ho sé (10); avís «No els enganxis al xat» (11); interruptor com a LED verd (12).
+Ritme (13-10-2026): carrega IA-S1-ritme.js al <head>; tot el moviment va més a poc a poc, pel mateix factor (LENT, a IA-S1-ritme.js).
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Que soni bé no el fa cert.</title><style>
+/* Base de l'escenari (el color, la capçalera i el peu són a IA-S1-estil.css) */
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit;color:var(--ink)}
+button{cursor:pointer}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* ====================== A7 · llenguatge de xat ======================
+   Petició = bombolla de la persona (dreta, blau suau). Resposta simulada = bombolla del model (esquerra, blanca).
+   Escena: 1776 × 612. Cada pas és un .a7 que ocupa tota l'escena. */
+.a7{position:relative;width:1776px;height:600px;display:flex;flex-direction:column;gap:24px}
+.a7.mid{justify-content:center}
+.ic{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;flex:none;overflow:visible}
+
+.msg{display:flex;align-items:flex-start;gap:16px}
+.msg.user{justify-content:flex-end}
+.av{--edge:#CFC8B6;flex:none;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:var(--blue);
+  background:radial-gradient(circle at 30% 24%,#fff 0,#F4F1E8 55%,#E4DFD2 100%);
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.78),inset 0 0 0 5px rgba(21,23,28,.10),0 6px 0 var(--edge),0 8px 0 rgba(21,23,28,.10),0 16px 14px -8px rgba(21,23,28,.38)}
+.av.user{--edge:#9DB1F2;background:radial-gradient(circle at 30% 24%,#fff 0,var(--blue-soft) 55%,#C9D6FB 100%)}
+.bub{border-radius:28px;padding:22px 32px;font-size:44px;line-height:1.2;font-weight:500;letter-spacing:-.2px}
+.bub.user{--edge:#8FA6EF;background:linear-gradient(180deg,#EEF2FF,#DCE4FF);border:2px solid color-mix(in srgb,var(--blue) 32%,transparent);border-bottom-right-radius:8px;max-width:1300px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 12px 0 var(--edge),0 14px 0 rgba(21,23,28,.10),0 30px 30px -14px rgba(21,23,28,.42)}
+.bub.ai{--edge:#D3CCB9;background:var(--surface-grad);border:2px solid var(--line);border-bottom-left-radius:8px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 6px 0 var(--edge),0 8px 0 rgba(21,23,28,.08),0 16px 20px -10px rgba(21,23,28,.28)}
+.a7 .kicker{font-size:34px;letter-spacing:.07em;margin-bottom:8px}
+.msg.dim{opacity:.5}
+.msg.fill{flex:1;min-height:0;align-items:stretch}
+.msg.fill>.bub{flex:1;min-height:0}
+.msg.ctr{align-items:center}
+.bub.cites{flex:1;padding:24px}
+.bub.stackbub{display:flex;flex-direction:column;gap:14px;padding:20px 24px}
+.stack{display:flex;flex-direction:column;align-items:flex-end;min-width:0}
+.kicker .sq{display:inline-block;width:22px;height:22px;border-radius:6px;background:var(--coral);margin-right:14px;vertical-align:-2px}
+.kicker .sq.green{background:var(--green)}
+.badge.wait .d{background:transparent;color:var(--muted)}
+
+/* ---------- Insígnies d'estat ---------- */
+.badge{--c:var(--blue);--soft:var(--blue-soft);--edge:#9DB1F2;display:inline-flex;align-items:center;gap:12px;height:56px;padding:0 22px 0 6px;
+  border-radius:999px;font-size:34px;font-weight:700;line-height:1;white-space:nowrap;
+  background:linear-gradient(180deg,rgba(255,255,255,.8),rgba(255,255,255,0) 70%),var(--soft);
+  border:2px solid color-mix(in srgb,var(--c) 50%,transparent);color:var(--ink);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 var(--edge),0 7px 0 rgba(21,23,28,.10),0 14px 14px -8px rgba(21,23,28,.40)}
+.badge .d{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--c) 70%,#fff),var(--c) 62%);color:#fff;display:grid;place-items:center;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 3px 0 color-mix(in srgb,var(--c) 60%,#000)}
+.badge.green{--c:var(--green);--soft:var(--green-soft);--edge:#86C8A9}
+.badge.amber{--c:var(--amber);--soft:var(--amber-soft);--edge:#DDB963}
+.badge.coral{--c:var(--coral);--soft:var(--coral-soft);--edge:#E8A88E}
+.badge.gray{--c:#6E6A60;--soft:#ECEAE3;--edge:#C9C3B6}
+.badge.wait{--c:#6E6A60;--soft:transparent;border-style:dashed;border-color:var(--line-strong);color:var(--muted);background:rgba(21,23,28,.03);
+  box-shadow:inset 0 3px 6px rgba(21,23,28,.14),inset 0 -1px 0 rgba(255,255,255,.7)}
+.badge.wait .d{box-shadow:none}
+
+/* ---------- Targetes de cita ---------- */
+.cite{--edge:#D6CEBB;position:relative;display:flex;gap:20px;border-radius:20px;background:linear-gradient(180deg,#FCFBF7,#F3F0E6);border:2px solid var(--line);
+  padding:20px 26px 20px 38px;overflow:hidden;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 7px 0 var(--edge),0 9px 0 rgba(21,23,28,.09),0 18px 22px -12px rgba(21,23,28,.34)}
+.cite .edge{position:absolute;left:0;top:0;bottom:0;width:12px;background:var(--blue);box-shadow:inset -3px 0 0 rgba(0,0,0,.14),inset 2px 0 0 rgba(255,255,255,.3)}
+.cite.ok{background:linear-gradient(180deg,#EBF8F1,var(--green-soft));--edge:#8DCBAD}.cite.ok .edge{background:var(--green)}
+.cite.diff{background:linear-gradient(180deg,#FFF6DF,var(--amber-soft));--edge:#DDB963}.cite.diff .edge{background:var(--amber)}
+.cite.miss{background:linear-gradient(180deg,#FFEEE8,var(--coral-soft));--edge:#E8A88E}.cite.miss .edge{background:var(--coral)}
+.num{flex:none;width:60px;height:60px;border-radius:16px;background:linear-gradient(180deg,#F2F5FF,var(--blue-soft));color:var(--blue);display:grid;place-items:center;
+  font-family:var(--font-display);font-weight:800;font-size:40px;line-height:1;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 #9DB1F2,0 7px 0 rgba(21,23,28,.10)}
+.cite .author{font-size:44px;font-weight:700;line-height:1.1;letter-spacing:-.2px}
+.cite .title{font-size:42px;font-style:italic;font-weight:500;line-height:1.15}
+.cite .body{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.cite .row1{display:flex;align-items:center;justify-content:space-between;gap:16px}
+/* Pas 1: tres targetes en fila */
+.cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.cite.v{flex-direction:column;gap:14px;padding:22px 26px 22px 38px}
+.cite.v .body{justify-content:flex-start}
+
+/* ---------- Passos 2 i 3: referències + catàleg ---------- */
+.verify{flex-direction:row;gap:32px}
+.verify .msg{flex:none;width:1092px;height:600px;align-items:stretch}
+.verify .msg .bub{flex:1;display:flex;flex-direction:column;gap:14px;padding:22px 24px}
+.verify .cite{flex:1}
+.cat{--edge:#C7BFAA;flex:1;display:flex;flex-direction:column;gap:12px;padding:16px 22px 22px;border-radius:var(--radius);
+  background:linear-gradient(180deg,#E8E4D6 0%,#F1EEE3 100%);border:3px dashed var(--line-strong);
+  box-shadow:inset 0 9px 16px rgba(21,23,28,.16),inset 0 -2px 0 rgba(255,255,255,.8),0 10px 0 var(--edge),0 12px 0 rgba(21,23,28,.10),0 28px 34px -16px rgba(21,23,28,.38)}
+.cat .hd{display:flex;align-items:center;gap:16px;height:60px;font-family:var(--font-display);font-size:46px;font-weight:700;letter-spacing:-.01em}
+.cat .hd .lens{width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 30% 24%,#fff 0,var(--blue-soft) 60%,#C9D6FB 100%);color:var(--blue);display:grid;place-items:center;
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.75),0 5px 0 #9DB1F2,0 7px 0 rgba(21,23,28,.10)}
+.slot{--c:var(--blue);--soft:transparent;--edge:#D6CEBB;flex:1;display:flex;gap:18px;align-items:flex-start;padding:12px 20px;border-radius:18px;
+  background:var(--soft);border:2px solid transparent;min-height:0;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 6px 0 var(--edge),0 8px 0 rgba(21,23,28,.08),0 14px 16px -10px rgba(21,23,28,.32)}
+.slot .d{flex:none;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--c) 70%,#fff),var(--c) 62%);color:#fff;display:grid;place-items:center;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 3px 0 color-mix(in srgb,var(--c) 60%,#000)}
+.slot .tx{display:flex;flex-direction:column;gap:6px;min-width:0}
+.slot .who{font-size:42px;font-weight:700;line-height:1.1}
+.slot .what{font-size:34px;line-height:1.18;font-weight:500}
+.slot.ok{--c:var(--green);--soft:var(--green-soft);--edge:#8DCBAD}
+.slot.diff{--c:var(--amber);--soft:var(--amber-soft);--edge:#DDB963}
+.slot.miss{--c:var(--coral);--soft:var(--coral-soft);--edge:#E8A88E}
+.slot.wait{border:2px dashed var(--line-strong);align-items:center;box-shadow:inset 0 4px 8px rgba(21,23,28,.13),inset 0 -1px 0 rgba(255,255,255,.7)}
+.slot.wait .who{color:var(--muted);font-weight:600}
+.slot.wait .d{background:transparent;color:var(--muted);border:2px dashed var(--line-strong);box-shadow:none}
+.yrs{display:flex;gap:12px;flex-wrap:wrap}
+.yr{display:inline-flex;align-items:center;border-radius:12px;padding:4px 14px;font-size:34px;font-weight:600;background:#fff;border:2px solid var(--line-strong);line-height:1.2}
+.yr.cat-y{background:#fff;border-color:var(--amber);box-shadow:inset 0 -4px 0 var(--amber)}
+
+/* ---------- Pas 4: plausibilitat ---------- */
+.probs{display:grid;grid-template-columns:1fr 1fr;gap:32px;flex:1;min-height:0}
+.prob{--edge:#D8D1BF;display:flex;flex-direction:column;padding:24px 28px 20px;background:var(--surface-grad);border-radius:var(--radius);border:2px solid var(--line);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 9px 0 var(--edge),0 11px 0 rgba(21,23,28,.09),0 26px 34px -16px rgba(21,23,28,.34)}
+.prob .hd{font-family:var(--font-display);font-size:50px;font-weight:700;letter-spacing:-.01em;line-height:1.1;padding:0 16px 8px}
+.prow{flex:1;display:grid;grid-template-columns:184px 1fr 128px;align-items:center;gap:20px;padding:0 16px;border-radius:18px}
+.prow.top{background:linear-gradient(180deg,#FFF0EA,var(--coral-soft));box-shadow:inset 0 2px 0 rgba(255,255,255,.8),0 5px 0 #F2BFAE,0 7px 0 rgba(21,23,28,.08)}
+.prow .nm{font-size:42px;font-weight:600}
+.prow.top .nm{font-weight:800}
+.prow .pc{font-size:46px;font-weight:700;text-align:right;font-family:var(--font-display)}
+.prob .bar{height:38px}
+.assembled{font-family:var(--font-display);font-size:56px;font-weight:700;letter-spacing:-.01em;line-height:1.15;padding:20px 36px}
+mark{background:linear-gradient(180deg,#FFF1EC,var(--coral-soft));color:inherit;border-radius:12px;padding:0 12px;box-shadow:inset 0 2px 0 rgba(255,255,255,.75),0 5px 0 var(--coral),0 7px 0 rgba(21,23,28,.12);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+
+/* ---------- Pas 5: data de tall ---------- */
+.tl{position:relative;height:316px;flex:none}
+.seg{position:absolute;top:104px;height:112px;border-radius:24px;display:flex;align-items:center;padding:0 40px;
+  font-family:var(--font-display);font-size:54px;font-weight:700;letter-spacing:-.01em}
+.seg.train{left:0;width:1016px;background:linear-gradient(180deg,#EEF2FF,var(--blue-soft));border:2px solid color-mix(in srgb,var(--blue) 40%,transparent);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 12px 0 #8FA6EF,0 14px 0 rgba(21,23,28,.10),0 28px 28px -14px rgba(21,23,28,.40)}
+.seg.after{left:1064px;width:712px;border:4px dashed var(--line-strong);background:rgba(21,23,28,.035);box-shadow:inset 0 7px 12px rgba(21,23,28,.14),inset 0 -1px 0 rgba(255,255,255,.7)}
+.cutline{position:absolute;left:1031px;top:64px;width:20px;height:196px;border-radius:7px;transform-origin:top center;
+  background:linear-gradient(90deg,rgba(255,255,255,.42),rgba(255,255,255,0) 46%,rgba(0,0,0,.24)),repeating-linear-gradient(180deg,#D2462A 0 24px,#F7E8E2 24px 48px);
+  box-shadow:0 0 0 1px rgba(21,23,28,.10),10px 12px 14px -4px rgba(21,23,28,.38)}
+.cutline::after{content:"";position:absolute;left:-26px;right:-26px;bottom:-12px;height:22px;border-radius:9px;background:linear-gradient(180deg,#E8654A,#D2462A);box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 6px 0 #9C3118,0 8px 0 rgba(21,23,28,.12)}
+.cutlabel{position:absolute;left:1041px;top:0;translate:-50% 0;display:inline-flex;align-items:center;gap:14px;background:var(--coral);color:#fff;
+  padding:0 28px 0 22px;height:64px;border-radius:999px;font-size:42px;font-weight:700;white-space:nowrap;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 7px 0 #9C3118,0 9px 0 rgba(21,23,28,.12),0 18px 18px -8px rgba(21,23,28,.4)}
+.axis{position:absolute;left:0;top:262px;width:1776px;height:44px;overflow:visible}
+.axis .stroke{stroke-width:9px;filter:drop-shadow(2px 5px 0 rgba(21,23,28,.16))}
+.cards2{display:flex;gap:48px;flex:1;min-height:0}
+.cards2 .card{display:flex;flex-direction:column;justify-content:center;gap:20px;padding:24px 36px;font-size:50px;font-weight:700;line-height:1.15;letter-spacing:-.01em}
+.cards2 .l{width:1016px}.cards2 .r{flex:1}
+.cards2 .card.l{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 10px 0 #9FB4F1,0 12px 0 rgba(21,23,28,.10),0 26px 28px -14px rgba(21,23,28,.36)}
+.cards2 .card.r{background:var(--surface-grad);box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 10px 0 #D6CEBB,0 12px 0 rgba(21,23,28,.09),0 26px 28px -14px rgba(21,23,28,.30)}
+.cards2 .ico{width:76px;height:76px;border-radius:20px;background:#fff;color:var(--blue);display:grid;place-items:center;border:2px solid color-mix(in srgb,var(--blue) 35%,transparent);box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 #9DB1F2,0 7px 0 rgba(21,23,28,.10)}
+.chips{display:flex;gap:16px;flex-wrap:wrap}
+.chips .chip{gap:12px;font-size:42px;font-weight:600;padding:8px 20px 8px 14px}
+
+/* ---------- Passos 6 i 7: donar la raó ---------- */
+.s6{flex-direction:row;gap:32px;align-items:center}
+.doc{background:var(--surface-grad);border:2px solid var(--line);border-radius:var(--radius);padding:28px 36px 32px;position:relative;overflow:hidden;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),6px 7px 0 -1px #FBFAF6,6px 7px 0 0 rgba(21,23,28,.13),12px 14px 0 -1px #F2EFE6,12px 14px 0 0 rgba(21,23,28,.13),24px 36px 32px -14px rgba(21,23,28,.34)}
+.doc::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;background:var(--blue)}
+.doc .kicker{display:flex;align-items:center;gap:14px;margin:10px 0 14px;color:var(--ink)}
+.doc .kicker .ic{color:var(--blue)}
+.doc .txt{font-size:46px;line-height:1.24;font-weight:600;letter-spacing:-.3px}
+.s6 .doc{width:660px;flex:none}
+.s6 .chat{flex:1;display:flex;flex-direction:column;gap:20px}
+.pair{display:flex;flex-direction:column;gap:24px}
+.pair .msg.ai .bub{flex:1}
+.bub .kicker{margin-bottom:6px}
+.bub.ai .txt2{font-size:44px;line-height:1.22;font-weight:600;letter-spacing:-.3px}
+.s7 .doc{padding:18px 36px 22px;margin-right:14px}
+.s7 .doc .txt{font-size:42px;line-height:1.2}
+.s7 .doc .kicker{margin:8px 0 8px}
+.s7 .cols{display:grid;grid-template-columns:1fr 1fr;gap:32px;flex:1;min-height:0}
+.s7 .bub{font-size:40px;padding:18px 26px}
+.s7 .bub.ai .txt2{font-size:40px}
+.s7 .av{width:56px;height:56px}
+.s7 .msg{gap:12px}
+.s7 .pair .msg.user .bub{max-width:none}
+
+/* ---------- Pas 8: biaixos ---------- */
+.s8 .bub.ai{padding:24px 36px 28px}
+.s8 .story{font-family:var(--font-display);font-size:58px;line-height:1.2;font-weight:600;letter-spacing:-.01em}
+.assign{display:flex;gap:32px}
+.as{flex:1;display:flex;align-items:center;justify-content:center;gap:24px;background:var(--surface-grad);border:2px solid var(--line);border-radius:22px;padding:18px 24px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 8px 0 #D6CEBB,0 10px 0 rgba(21,23,28,.09),0 22px 28px -14px rgba(21,23,28,.32)}
+.as .role{font-size:48px;font-weight:700;padding:6px 22px;border-radius:14px;background:linear-gradient(180deg,#F2F5FF,var(--blue-soft));border:2px solid color-mix(in srgb,var(--blue) 35%,transparent);line-height:1.15;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 #9DB1F2,0 7px 0 rgba(21,23,28,.10)}
+.as .gen{font-size:48px;font-weight:700;padding:6px 26px;border-radius:14px;background:linear-gradient(180deg,#E8654A,var(--coral));color:#fff;line-height:1.15;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 5px 0 #9C3118,0 7px 0 rgba(21,23,28,.12)}
+.as .ic{color:var(--ink);opacity:.55}
+
+/* ---------- Passos 9 i 10: raonar i marcar el dubte ---------- */
+.duo{display:flex;gap:20px;align-items:stretch;flex:1;min-height:0}
+.duo .card{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:20px 32px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 9px 0 #D6CEBB,0 11px 0 rgba(21,23,28,.09),0 24px 30px -14px rgba(21,23,28,.34)}
+.duo .arr{flex:none;width:64px;display:grid;place-items:center;color:var(--ink);opacity:.55}
+.lines{display:flex;flex-direction:column;gap:6px}
+.ln{display:flex;align-items:center;gap:18px;font-size:46px;font-weight:600;line-height:1.15;padding:8px 0;position:relative}
+.ln .num{width:52px;height:52px;border-radius:14px;font-size:34px}
+.ln.bad .num{background:var(--coral-soft);color:var(--coral)}
+.ln .t{position:relative;padding-bottom:6px}
+.ln .t .mk{position:absolute;left:0;right:0;bottom:0;height:5px;background:repeating-linear-gradient(90deg,var(--coral) 0 14px,transparent 14px 22px);transform-origin:left center}
+.ln .x{margin-left:auto;color:var(--coral)}
+.duo .kicker{color:var(--ink);margin-bottom:6px}
+.eq{font-family:var(--font-display);font-size:78px;font-weight:700;letter-spacing:-.02em;line-height:1.05;white-space:nowrap;align-self:flex-start;padding:8px 28px 14px;border-radius:20px;
+  background:linear-gradient(180deg,#FFFFFF,#F2EFE6);border:2px solid var(--line);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.95),inset 0 -4px 0 rgba(21,23,28,.05),0 9px 0 #CFC7B2,0 11px 0 rgba(21,23,28,.10),0 22px 24px -12px rgba(21,23,28,.38)}
+.eq .bad{color:var(--coral)}
+.fix{display:inline-flex;align-items:center;gap:16px;align-self:flex-start;background:var(--green-soft);border:2px solid color-mix(in srgb,var(--green) 45%,transparent);
+  border-radius:18px;padding:10px 24px 10px 12px;font-size:44px;font-weight:700;line-height:1.1;background:linear-gradient(180deg,#EBF8F1,var(--green-soft));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 6px 0 #86C8A9,0 8px 0 rgba(21,23,28,.10)}
+.fix .d{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 32% 26%,#4CC3A0,var(--green) 62%);color:#fff;display:grid;place-items:center;box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 3px 0 #0D5F45}
+
+.conf{flex:1;display:flex;flex-direction:column;gap:14px;padding:20px 24px;min-height:0}
+.confrow{--c:var(--blue);--soft:#F8F6EF;--edge:#D6CEBB;flex:1;display:flex;align-items:center;gap:32px;padding:0 32px 0 38px;border-radius:20px;background:var(--soft);
+  border:2px solid var(--line);position:relative;overflow:hidden;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 7px 0 var(--edge),0 9px 0 rgba(21,23,28,.09),0 16px 20px -12px rgba(21,23,28,.32)}
+.confrow .edge{position:absolute;left:0;top:0;bottom:0;width:12px;background:var(--c)}
+.confrow.green{--c:var(--green);--soft:var(--green-soft);--edge:#8DCBAD}
+.confrow.amber{--c:var(--amber);--soft:var(--amber-soft);--edge:#DDB963}
+.confrow.gray{--c:#6E6A60;--soft:#ECEAE3;--edge:#C9C3B6}
+.confrow .badge{flex:none;width:320px;background:#fff;height:64px;font-size:38px;padding:0 24px 0 8px}
+.confrow .badge .d{width:50px;height:50px}
+.confrow .ans{font-size:44px;font-weight:600;line-height:1.15;letter-spacing:-.2px}
+
+/* ---------- Passos 11 i 12: dades de l'alumnat ---------- */
+.s11{justify-content:center;gap:28px}
+.s11 .bub.user{font-size:58px;line-height:1.28;padding:28px 40px;max-width:1500px;font-weight:600;letter-spacing:-.3px}
+.pii{background:linear-gradient(var(--coral),var(--coral)) left bottom/100% 6px no-repeat,var(--coral-soft);border-radius:12px;padding:0 10px 4px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+.nopaste{display:flex;align-items:center;gap:32px;background:linear-gradient(180deg,#FFF0EA,var(--coral-soft));border:3px solid var(--coral);border-radius:var(--radius);padding:24px 40px 24px 32px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 10px 0 #E8A88E,0 12px 0 rgba(21,23,28,.10),0 26px 30px -14px rgba(21,23,28,.34)}
+.nopaste .d{flex:none;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 32% 26%,#EE7B61,var(--coral) 62%);color:#fff;display:grid;place-items:center;
+  box-shadow:inset 0 0 0 5px rgba(255,255,255,.26),inset 0 3px 0 rgba(255,255,255,.3),0 7px 0 #8F2B14,0 9px 0 rgba(21,23,28,.12)}
+.nopaste .lab{font-size:40px;font-weight:600;line-height:1.2;color:var(--ink);margin-bottom:8px}
+.nopaste .strong{font-family:var(--font-display);font-size:64px;font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.s12{flex-direction:row;gap:40px;align-items:center}
+.s12 .left{flex:1;display:flex;flex-direction:column;gap:20px;justify-content:center}
+.s12 .bub.user{font-size:58px;line-height:1.28;padding:32px 44px;max-width:none;font-weight:600;letter-spacing:-.3px;position:relative}
+.s12 .anon{position:relative}
+.s12 .before{position:absolute;inset:0;opacity:0;pointer-events:none}
+.s12 .kick{display:flex;justify-content:flex-end;align-items:center;gap:14px}
+.safe{background:linear-gradient(var(--green),var(--green)) left bottom/100% 6px no-repeat,var(--green-soft);border-radius:12px;padding:0 10px 4px;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone}
+.temp{flex:none;width:640px;display:flex;flex-direction:column;align-items:flex-start;gap:26px;padding:32px 40px 36px;border-radius:var(--radius);background:var(--surface);
+  border:3px dashed var(--line-strong);background:var(--surface-grad);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 10px 0 #D6CEBB,0 12px 0 rgba(21,23,28,.09),0 28px 34px -16px rgba(21,23,28,.36)}
+.temp .hd{display:flex;align-items:center;gap:18px;font-family:var(--font-display);font-size:54px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.temp .hd .ic{color:var(--blue)}
+.sw{position:relative;width:240px;height:124px;border-radius:62px;margin:10px 0 14px 10px;background-color:var(--green);background-image:linear-gradient(180deg,rgba(0,0,0,.24),rgba(255,255,255,.10) 100%);
+  box-shadow:inset 0 9px 16px rgba(0,0,0,.38),inset 0 -3px 0 rgba(255,255,255,.2),0 0 0 9px #F6F3EA,0 0 0 11px rgba(21,23,28,.16),0 7px 0 11px #C9C1AC,0 9px 0 11px rgba(21,23,28,.12),0 26px 26px -6px rgba(21,23,28,.38)}
+.sw .knob{position:absolute;right:12px;top:8px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle at 34% 26%,#fff 0,#F6F3EA 40%,#D6D0C0 100%);
+  box-shadow:inset 0 -7px 10px rgba(21,23,28,.12),inset 0 0 0 4px rgba(255,255,255,.7),0 8px 0 #A9A290,0 10px 0 rgba(21,23,28,.16),0 22px 18px -4px rgba(0,0,0,.45);
+  display:grid;place-items:center;color:var(--green)}
+.temp .on{font-family:var(--font-display);font-size:64px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.temp .concept{display:inline-flex;font-size:36px;font-weight:600;padding:6px 20px;border-radius:14px;border:2px dashed var(--line-strong);color:var(--muted);line-height:1.2}
+
+/* ====================== v3 · Profunditat ======================
+   Fons: fulls de paper i fitxes flotant en perspectiva (window.fonsIA), a dalt a la dreta i al canal esquerre, desenfocats i sense text. */
+body[data-animation] #fons .capa{transform:translate3d(calc(var(--p,0) * -9px),calc(var(--p,0) * 3px),0)}
+#fons{opacity:.92;filter:blur(3px) saturate(1.05);
+  -webkit-mask-image:radial-gradient(1500px 780px at 102% -4%,#000 24%,rgba(0,0,0,.55) 46%,transparent 74%),linear-gradient(90deg,#000 0,rgba(0,0,0,.7) 2.4%,transparent 6.5%);
+          mask-image:radial-gradient(1500px 780px at 102% -4%,#000 24%,rgba(0,0,0,.55) 46%,transparent 74%),linear-gradient(90deg,#000 0,rgba(0,0,0,.7) 2.4%,transparent 6.5%)}
+#fons .pla{position:absolute;transform-style:preserve-3d}
+#fons .pla.a{left:700px;top:-420px;width:1500px;height:1200px;transform:rotateX(56deg) rotateZ(-20deg)}
+#fons .pla.b{left:-520px;top:180px;width:760px;height:1300px;transform:rotateX(50deg) rotateZ(14deg)}
+#fons .pla>i{position:absolute;display:block;transform:translateZ(var(--z,0px)) rotate(var(--r,0deg))}
+#fons .hoja{width:300px;height:390px;border-radius:12px;background:linear-gradient(160deg,#fff,#F1EEE4);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),2px 3px 0 #E6E1D1,5px 7px 0 #D9D3C0,24px 36px 34px -12px rgba(21,23,28,.34)}
+#fons .hoja::before{content:"";position:absolute;inset:46px 38px 44px;background:repeating-linear-gradient(180deg,rgba(21,23,28,.15) 0 10px,transparent 10px 32px)}
+#fons .ficha{width:260px;height:160px;border-radius:12px;background:#FCFBF7;box-shadow:inset 0 16px 0 var(--k),inset 0 18px 0 rgba(255,255,255,.35),0 7px 0 #D6CEBB,0 9px 0 rgba(21,23,28,.10),22px 30px 30px -10px rgba(21,23,28,.36)}
+#fons .ficha::before{content:"";position:absolute;inset:44px 24px 24px;background:repeating-linear-gradient(180deg,rgba(21,23,28,.14) 0 6px,transparent 6px 26px)}
+
+/* Targetes girades en Y (≤ 7°) amb l'origen a la vora exterior, com les pàgines d'un llibre. S'usa la propietat `rotate`, que no trepitja les animacions de `transform`. */
+.cols3{perspective:1800px}
+.cols3 .cite:nth-child(1){rotate:0 1 0 7deg;transform-origin:0 50%}
+.cols3 .cite:nth-child(3){rotate:0 1 0 -7deg;transform-origin:100% 50%}
+.verify{perspective:2400px}
+.verify .cat{rotate:0 1 0 -5deg;transform-origin:100% 50%}
+.probs{perspective:1800px}
+.prob:nth-child(1){rotate:0 1 0 5deg;transform-origin:0 50%}
+.prob:nth-child(2){rotate:0 1 0 -5deg;transform-origin:100% 50%}
+.duo{perspective:1800px}
+.duo .card:first-child{rotate:0 1 0 5deg;transform-origin:0 50%}
+.duo .card:last-child{rotate:0 1 0 -5deg;transform-origin:100% 50%}
+
+/* ====================== v4 · Llum ======================
+   Els halos se SUMEN als box-shadow de gruix que ja hi eren (per això es reescriuen sencers aquí).
+   Brilla el que emet, amb el color del seu significat; el text no brilla (els halos van a fitxes, insígnies i plaques amb fons opac).
+   Res no porta transform estàtic: rise/pop/grow ja usen transform. */
+.badge{--rgb:47,85,212;--ga:.44}
+.badge.green{--rgb:22,128,94}.badge.amber{--rgb:201,133,18}.badge.coral{--rgb:210,70,42}.badge.gray{--rgb:110,106,96;--ga:.24}
+.badge:not(.wait){box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 var(--edge),0 7px 0 rgba(21,23,28,.10),0 14px 14px -8px rgba(21,23,28,.40),
+  0 0 16px 1px rgba(var(--rgb),var(--ga)),0 0 34px 2px rgba(var(--rgb),calc(var(--ga) * .4))}
+.badge:not(.wait) .d{box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 0 8px rgba(255,255,255,.4),0 3px 0 color-mix(in srgb,var(--c) 60%,#000),0 0 10px 1px rgba(var(--rgb),.55)}
+.av:not(.user){box-shadow:inset 0 0 0 4px rgba(255,255,255,.78),inset 0 0 0 5px rgba(21,23,28,.10),0 6px 0 var(--edge),0 8px 0 rgba(21,23,28,.10),0 16px 14px -8px rgba(21,23,28,.38),
+  0 0 22px 3px rgba(47,85,212,.46),0 0 50px 6px rgba(47,85,212,.18)}
+.cite{--rgb:47,85,212;--lb:.30;box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 7px 0 var(--edge),0 9px 0 rgba(21,23,28,.09),0 18px 22px -12px rgba(21,23,28,.34),0 22px 34px -12px rgba(var(--rgb),var(--lb))}
+.cite.ok{--rgb:22,128,94;--lb:.46}.cite.diff{--rgb:201,133,18;--lb:.46}.cite.miss{--rgb:210,70,42;--lb:.44}
+.cite .edge{box-shadow:inset -3px 0 0 rgba(0,0,0,.14),inset 2px 0 0 rgba(255,255,255,.3),0 0 14px 2px rgba(var(--rgb),.6)}
+.cat .hd .lens{box-shadow:inset 0 0 0 4px rgba(255,255,255,.75),0 5px 0 #9DB1F2,0 7px 0 rgba(21,23,28,.10),0 0 18px 2px rgba(47,85,212,.36)}
+.slot{--rgb:47,85,212}.slot.ok{--rgb:22,128,94}.slot.diff{--rgb:201,133,18}.slot.miss{--rgb:210,70,42}
+.slot:not(.wait){box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 6px 0 var(--edge),0 8px 0 rgba(21,23,28,.08),0 14px 16px -10px rgba(21,23,28,.32),0 18px 30px -10px rgba(var(--rgb),.34)}
+.slot:not(.wait) .d{box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 0 8px rgba(255,255,255,.35),0 3px 0 color-mix(in srgb,var(--c) 60%,#000),0 0 12px 1px rgba(var(--rgb),.5)}
+.kicker .sq{box-shadow:0 0 10px 2px rgba(210,70,42,.5)}.kicker .sq.green{box-shadow:0 0 10px 2px rgba(22,128,94,.5)}
+
+/* Pas 4: barres guanyadores */
+.prob .bar{overflow:visible}
+.prob .bar.coral>i{box-shadow:inset 0 3px 0 rgba(255,255,255,.32),inset 0 -4px 0 rgba(0,0,0,.14),0 0 16px 3px rgba(210,70,42,.62),0 0 40px 8px rgba(210,70,42,.26)}
+.prob .bar.coral>i::after{content:"";position:absolute;right:6px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;
+  background:radial-gradient(circle,#fff 0 36%,rgba(255,236,228,.75) 54%,rgba(255,236,228,0) 76%);box-shadow:0 0 12px 3px rgba(255,205,190,.9)}
+.prow.top{box-shadow:inset 0 2px 0 rgba(255,255,255,.8),0 5px 0 #F2BFAE,0 7px 0 rgba(21,23,28,.08),0 20px 32px -8px rgba(210,70,42,.44)}
+
+/* Pas 5: la barrera de la data de tall emet llum d'avís */
+.cutline{box-shadow:0 0 0 1px rgba(21,23,28,.10),10px 12px 14px -4px rgba(21,23,28,.38),0 0 28px 6px rgba(210,70,42,.62),0 0 76px 16px rgba(210,70,42,.26)}
+.cutlabel{box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 7px 0 #9C3118,0 9px 0 rgba(21,23,28,.12),0 18px 18px -8px rgba(21,23,28,.4),0 0 26px 4px rgba(210,70,42,.56)}
+.seg.train{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 12px 0 #8FA6EF,0 14px 0 rgba(21,23,28,.10),0 28px 28px -14px rgba(21,23,28,.40),0 30px 44px -14px rgba(47,85,212,.34)}
+.cards2 .card.l{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 10px 0 #9FB4F1,0 12px 0 rgba(21,23,28,.10),0 26px 28px -14px rgba(21,23,28,.36),0 30px 42px -14px rgba(47,85,212,.32)}
+.chips .chip{box-shadow:var(--key),0 18px 28px -8px rgba(22,128,94,.36)}
+
+/* Passos 6-7: el mateix text i dues respostes (elogi ambre, crítica corall) */
+.doc{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),6px 7px 0 -1px #FBFAF6,6px 7px 0 0 rgba(21,23,28,.13),12px 14px 0 -1px #F2EFE6,12px 14px 0 0 rgba(21,23,28,.13),24px 36px 32px -14px rgba(21,23,28,.34),20px 44px 54px -16px rgba(47,85,212,.30)}
+.bub.ai.praise{box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 6px 0 var(--edge),0 8px 0 rgba(21,23,28,.08),0 16px 20px -10px rgba(21,23,28,.28),0 24px 40px -10px rgba(201,133,18,.52)}
+.bub.ai.crit{box-shadow:inset 0 2px 0 rgba(255,255,255,.95),0 6px 0 var(--edge),0 8px 0 rgba(21,23,28,.08),0 16px 20px -10px rgba(21,23,28,.28),0 24px 40px -10px rgba(210,70,42,.52)}
+
+/* Pas 8: fitxes Home / Dona */
+.as .gen{box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 5px 0 #9C3118,0 7px 0 rgba(21,23,28,.12),0 0 20px 3px rgba(210,70,42,.58),0 0 50px 8px rgba(210,70,42,.24)}
+.as .role{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 #9DB1F2,0 7px 0 rgba(21,23,28,.10),0 14px 24px -8px rgba(47,85,212,.32)}
+
+/* Pas 9: «≠ 24» i la correcció */
+.eq{box-shadow:inset 0 2px 0 rgba(255,255,255,.95),inset 0 -4px 0 rgba(21,23,28,.05),0 9px 0 #CFC7B2,0 11px 0 rgba(21,23,28,.10),0 22px 24px -12px rgba(21,23,28,.38),0 0 30px 5px rgba(210,70,42,.5),0 0 72px 14px rgba(210,70,42,.2)}
+.ln.bad .num{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 #9DB1F2,0 7px 0 rgba(21,23,28,.10),0 0 12px 1px rgba(210,70,42,.5)}
+.fix{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 6px 0 #86C8A9,0 8px 0 rgba(21,23,28,.10),0 0 22px 3px rgba(22,128,94,.52),0 16px 28px -8px rgba(22,128,94,.42)}
+.fix .d{box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 0 8px rgba(255,255,255,.35),0 3px 0 #0D5F45,0 0 10px 1px rgba(22,128,94,.55)}
+
+/* Pas 10: files de seguretat (s'hi treu l'overflow perquè els halos no es tallin; el cantell porta el seu radi) */
+.confrow{--rgb:47,85,212;--lb:.44;overflow:visible;box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 7px 0 var(--edge),0 9px 0 rgba(21,23,28,.09),0 16px 20px -12px rgba(21,23,28,.32),0 22px 34px -12px rgba(var(--rgb),var(--lb))}
+.confrow.green{--rgb:22,128,94}.confrow.amber{--rgb:201,133,18}.confrow.gray{--rgb:110,106,96;--lb:.24}
+.confrow .edge{border-radius:18px 0 0 18px;box-shadow:0 0 12px 1px rgba(var(--rgb),.55)}
+
+/* Pas 11: l'avís */
+.nopaste{box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 10px 0 #E8A88E,0 12px 0 rgba(21,23,28,.10),0 26px 30px -14px rgba(21,23,28,.34),0 0 32px 5px rgba(210,70,42,.48),0 0 80px 14px rgba(210,70,42,.2)}
+.nopaste .d{box-shadow:inset 0 0 0 5px rgba(255,255,255,.26),inset 0 3px 0 rgba(255,255,255,.3),inset 0 0 14px rgba(255,255,255,.3),0 7px 0 #8F2B14,0 9px 0 rgba(21,23,28,.12),0 0 20px 3px rgba(210,70,42,.55)}
+
+/* Pas 12: l'interruptor és un LED verd; el halo s'encén quan canvia de color (850 ms), no abans */
+.sw{box-shadow:inset 0 9px 16px rgba(0,0,0,.38),inset 0 -10px 18px rgba(140,255,210,.26),inset 0 -3px 0 rgba(255,255,255,.2),0 0 0 9px #F6F3EA,0 0 0 11px rgba(21,23,28,.16),0 7px 0 11px #C9C1AC,0 9px 0 11px rgba(21,23,28,.12),0 26px 26px -6px rgba(21,23,28,.38)}
+.sw::after{content:"";position:absolute;inset:-4px;border-radius:inherit;pointer-events:none;box-shadow:0 0 30px 6px rgba(22,128,94,.62),0 0 78px 16px rgba(22,128,94,.28)}
+body:not([data-dir="back"]) .sw::after{animation:a7-ledon .6s ease 850ms backwards}
+@keyframes a7-ledon{from{opacity:0}to{opacity:1}}
+
+/* Fons: les fitxes de color emeten una llum suau (bokeh) */
+#fons .ficha{box-shadow:inset 0 16px 0 var(--k),inset 0 18px 0 rgba(255,255,255,.35),0 7px 0 #D6CEBB,0 9px 0 rgba(21,23,28,.10),22px 30px 30px -10px rgba(21,23,28,.36),0 0 44px 8px color-mix(in srgb,var(--k) 36%,transparent)}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"><script src="IA-S1-ritme.js"></script></head><body data-animation="errors"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Espai / Av Pàg / Re Pàg     Inici: reinicia     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "Que soni bé no el fa cert.",
+  "simulated": "Exemple simulat",
+  "simulatedValues": "Exemple simulat / Valors il·lustratius",
+  "fictitiousValues": "Exemple simulat / Exemple fictici / Valors il·lustratius",
+  "fictitious": "Exemple simulat / Exemple fictici",
+  "question": "Recomana'm tres articles científics sobre l'aprenentatge en persones adultes, amb autor i any.",
+  "references": [
+    {
+      "author": "Núria Alzori",
+      "year": "2019",
+      "title": "Aprendre a l'edat adulta"
+    },
+    {
+      "author": "Arnau Veltora",
+      "year": "2021",
+      "title": "Motivació en educació d'adults"
+    },
+    {
+      "author": "Irene Saldren",
+      "year": "2023",
+      "title": "Retorn a l'aula i aprenentatge"
+    }
+  ],
+  "referenceCaption": "Tres referències. Un format impecable. Cap garantia.",
+  "referenceNote": "Autoria, títols i catàleg inventats per a aquesta demostració.",
+  "catalog": "Catàleg simulat",
+  "catalogMatch": "Coincideix",
+  "catalogWrongYear": "Any diferent",
+  "catalogMissing": "No trobat",
+  "catalogPending": "Pendent",
+  "catalogFirst": "El títol, l’autora i l’any coincideixen.",
+  "catalogSecond": "L’any del catàleg és 2017.",
+  "catalogThird": "Cap registre en les fonts simulades.",
+  "quotedYear": "Cita: 2021",
+  "catalogYear": "Catàleg: 2017",
+  "matchCaption": "La primera coincideix amb el catàleg simulat.",
+  "inventedCaption": "Format perfecte, referència inventada.",
+  "catalogNote": "No s’ha fet cap cerca real: totes les comprovacions són simulades.",
+  "surname": "Cognom",
+  "year": "Any",
+  "surnameCandidates": [
+    {
+      "name": "Alzori",
+      "p": 48
+    },
+    {
+      "name": "Veltora",
+      "p": 32
+    },
+    {
+      "name": "Saldren",
+      "p": 20
+    }
+  ],
+  "yearCandidates": [
+    {
+      "name": "2019",
+      "p": 46
+    },
+    {
+      "name": "2021",
+      "p": 34
+    },
+    {
+      "name": "2023",
+      "p": 20
+    }
+  ],
+  "percent": "%",
+  "assembledReference": "Alzori (2019). Aprendre a l’edat adulta.",
+  "probabilityCaption": "Tria el que és plausible; no consulta cap font.",
+  "probabilityNote": "Simplificat: genera token a token. Aquí no s’utilitza cap cerca.",
+  "training": "Entrenament",
+  "cutoff": "Data de tall",
+  "afterCutoff": "Després del tall",
+  "trainingPast": "Informació incorporada als pesos",
+  "contextNew": "Context",
+  "webNew": "Cerca web",
+  "newInformation": "Poden aportar informació posterior",
+  "cutoffCaption": "L’entrenament té un tall; el context pot aportar novetats.",
+  "cutoffNote": "Simplificat: el tall varia segons el model i no és una garantia de coneixement.",
+  "sameText": "El mateix text",
+  "sharedText": "Les persones adultes aprenen millor quan poden connectar els nous continguts amb la seva experiència.",
+  "praiseQuestion": "He escrit aquest text i crec que és molt bo. Què et sembla?",
+  "criticismQuestion": "Un company ha escrit aquest text i crec que és fluix. Què et sembla?",
+  "praise": "És un text clar i ben enfocat. L’enllaç amb l’experiència aporta solidesa.",
+  "criticism": "És un text massa general. Falta concretar com s’aplica a l’aula.",
+  "simulatedAnswer": "Resposta simulada",
+  "praiseCaption": "El mateix text, una pregunta que suggereix elogi.",
+  "criticismCaption": "Tendeix a donar-te la raó: pregunta sense revelar què en penses.",
+  "sycophancyNote": "Exemple d’un risc: no tots els models ni totes les respostes segueixen aquest patró.",
+  "biasQuestion": "Escriu un conte breu sobre la persona que dirigeix una empresa i la persona que n’atén la recepció.",
+  "biasAnswer": "El director va reunir l’equip. La recepcionista va atendre les visites.",
+  "doctor": "Direcció",
+  "nurse": "Recepció",
+  "man": "Home",
+  "woman": "Dona",
+  "biasCaption": "Reprodueix els biaixos dels textos amb què s’ha entrenat.",
+  "biasNote": "Exemple d’un risc: la petició no assigna cap gènere a les professions.",
+  "reasoningQuestion": "Reparteix 24 activitats en 3 grups. Quantes en rep cada grup?",
+  "summarizedSteps": "Passos resumits",
+  "operation": "Operació: 24 ÷ 3",
+  "wrongIntermediate": "Resultat proposat: 6",
+  "wrongAnswer": "6 activitats per grup.",
+  "checkResult": "Comprova el resultat",
+  "failedCheck": "3 × 6 = 18 ≠ 24",
+  "correctAnswer": "8 activitats per grup.",
+  "reasoningCaption": "Raonar redueix els errors; no els elimina.",
+  "reasoningNote": "Esquema didàctic: no mostra el raonament intern d’un model.",
+  "confidenceQuestion": "Si no n’estàs segur, indica-ho. Separa el que és comprovat del que és suposició.",
+  "confidenceRows": [
+    {
+      "label": "Comprovat",
+      "answer": "24 ÷ 3 = 8."
+    },
+    {
+      "label": "Suposició",
+      "answer": "Els tres grups reben el mateix nombre d’activitats."
+    },
+    {
+      "label": "No ho sé",
+      "answer": "Com vols adaptar les activitats a cada grup."
+    }
+  ],
+  "confidenceCaption": "Demana grau de seguretat. I comprova-ho igualment.",
+  "confidenceNote": "Una etiqueta «Comprovat» no acredita cap verificació ni cap font.",
+  "identifyingData": "Dades identificatives",
+  "privacyName": "La Marta Puig",
+  "privacyAge": "de 52 anys",
+  "privacyGroup": "del grup de GES de dimarts",
+  "privacyPrefix": ", ",
+  "privacySuffix": ", té dislèxia i…",
+  "removeData": "Nom, edat i grup concret",
+  "doNotPaste": "No els enganxis al xat.",
+  "identifiedCaption": "Cap dada identificativa al xat.",
+  "identifiedNote": "Persona inventada. La frase mostra dades que cal retirar abans d’enviar-la.",
+  "anonymizedData": "Dades anonimitzades",
+  "anonymousSentence": "Una alumna adulta d’un grup de GES té dislèxia i…",
+  "temporaryChat": "Xat temporal",
+  "activated": "Activat",
+  "conceptualOption": "Opció conceptual",
+  "anonymousCaption": "Xat temporal i dades anonimitzades.",
+  "anonymousNote": "El xat temporal no garanteix privacitat; evita detalls que permetin reidentificar.",
+  "arrow": "→",
+  "check": "✓",
+  "cross": "×",
+  "pending": "—"
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current=0, totalSteps=1, drawStep, generation=0;
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE='cubic-bezier(.2,.8,.2,1)';
+function motion(el,frames,options={}){if(!el||reduced())return null;return el.animate(frames,{duration:600,easing:EASE,fill:'both',...options});}
+function show(html,caption='',note='',stamp=''){
+ $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+ if(ANIM&&caption)motion($('#caption'),[{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'translateY(0)'}],{duration:520,fill:'backwards'});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ motion($('#title'),[{opacity:.7,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],{duration:500,fill:'backwards'});
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* ====================== A7 ====================== */
+const T=TEXTOS;
+let ANIM=true;   // només s'anima en avançar i si no hi ha «reduir moviment»; en retrocedir es pinta l'estat final
+
+/* Icones: SVG de traç uniforme (4 px), dibuixades sobre 48×48 i escalades amb el gruix compensat */
+const ICONS={
+ spark:'<path d="M24 5C25.4 16.6 31.4 22.6 43 24C31.4 25.4 25.4 31.4 24 43C22.6 31.4 16.6 25.4 5 24C16.6 22.6 22.6 16.6 24 5Z"/>',
+ person:'<circle cx="24" cy="15" r="8.5"/><path d="M7 43C7 33 14.5 28 24 28C33.5 28 41 33 41 43"/>',
+ lens:'<circle cx="21" cy="21" r="14"/><path d="M31.5 31.5L43 43"/>',
+ check:'<path d="M9 25.5L20 36.5L39 12"/>',
+ cross:'<path d="M12 12L36 36M36 12L12 36"/>',
+ neq:'<path d="M11 18H37M11 31H37M19 41L29 8"/>',
+ approx:'<path d="M8 18C12.5 11 18 11 24 18C30 25 35.5 25 40 18M8 32C12.5 25 18 25 24 32C30 39 35.5 39 40 32"/>',
+ help:'<path d="M15.5 17.5C15.5 12.5 19 9.5 24 9.5C29 9.5 32.5 12.5 32.5 17C32.5 21.5 29 23 26.5 25C25 26.2 24 27.5 24 30"/><path d="M24 39V39.6"/>',
+ clock:'<circle cx="24" cy="24" r="17"/><path d="M24 14V24L31 28"/>',
+ ban:'<circle cx="24" cy="24" r="17"/><path d="M12 36L36 12"/>',
+ arrowR:'<path d="M8 24H39M27 12L39 24L27 36"/>',
+ calendar:'<rect x="7" y="10" width="34" height="31" rx="5"/><path d="M7 21H41M16 5V14M32 5V14"/>',
+ database:'<ellipse cx="24" cy="12" rx="15" ry="6"/><path d="M9 12V36C9 39.3 15.7 42 24 42S39 39.3 39 36V12M9 24C9 27.3 15.7 30 24 30S39 27.3 39 24"/>',
+ chat:'<path d="M10 8H38A3 3 0 0 1 41 11V29A3 3 0 0 1 38 32H22L12 42V32H10A3 3 0 0 1 7 29V11A3 3 0 0 1 10 8Z"/>',
+ chatd:'<path stroke-dasharray="6 7" d="M10 8H38A3 3 0 0 1 41 11V29A3 3 0 0 1 38 32H22L12 42V32H10A3 3 0 0 1 7 29V11A3 3 0 0 1 10 8Z"/>',
+ globe:'<circle cx="24" cy="24" r="17"/><path d="M7 24H41M24 7C30.5 13.5 30.5 34.5 24 41C17.5 34.5 17.5 13.5 24 7Z"/>',
+ doc:'<path d="M12 5H28L38 15V41A2 2 0 0 1 36 43H12A2 2 0 0 1 10 41V7A2 2 0 0 1 12 5ZM28 5V15H38M16 25H32M16 33H27"/>'
+};
+const ic=(n,s=36)=>`<svg class="ic" viewBox="0 0 48 48" width="${s}" height="${s}" aria-hidden="true" style="stroke-width:${(192/s).toFixed(2)}px">${ICONS[n]}</svg>`;
+const av=k=>`<div class="av ${k}">${ic(k==='ai'?'spark':'person',34)}</div>`;
+const userMsg=(html,cls='')=>`<div class="msg user ${cls}"><div class="bub user">${html}</div>${av('user')}</div>`;
+const aiMsg=(html,cls='',bcls='',attrs='')=>`<div class="msg ai ${cls}">${av('ai')}<div class="bub ai ${bcls}"${attrs}>${html}</div></div>`;
+const badge=(kind,label,icon,enc)=>`<span class="badge ${kind}"${enc!=null&&['green','amber','coral'].includes(kind)?` data-encen data-llum="${kind}" style="--d:${enc}ms"`:''}><span class="d">${ic(icon,26)}</span>${esc(label)}</span>`;
+
+/* Animacions: lo nou entra esglaonat; en retrocedir (ANIM fals) no es fa res */
+function rise(sel,{delay=0,stagger=70,dx=0,dy=20,dur=600}={}){
+ if(!ANIM)return;
+ document.querySelectorAll(sel).forEach((el,i)=>el.animate([{opacity:0,transform:`translate(${dx}px,${dy}px)`},{opacity:1,transform:'translate(0px,0px)'}],{duration:dur,delay:delay+i*stagger,easing:EASE,fill:'backwards'}));
+}
+function pop(sel,{delay=0,stagger=90,dur=520}={}){
+ if(!ANIM)return;
+ document.querySelectorAll(sel).forEach((el,i)=>el.animate([{opacity:0,transform:'scale(.78)'},{opacity:1,transform:'scale(1)'}],{duration:dur,delay:delay+i*stagger,easing:EASE,fill:'backwards'}));
+}
+function grow(sel,{delay=0,stagger=0,dur=650,axis='X',origin='left center'}={}){
+ if(!ANIM)return;
+ document.querySelectorAll(sel).forEach((el,i)=>{el.style.transformOrigin=origin;el.animate([{transform:`scale${axis}(0)`},{transform:`scale${axis}(1)`}],{duration:dur,delay:delay+i*stagger,easing:EASE,fill:'backwards'});});
+}
+function draw(sel,{delay=0,dur=700,stagger=0}={}){
+ if(!ANIM)return;
+ document.querySelectorAll(sel).forEach((p,i)=>{const L=p.getTotalLength();p.animate([{strokeDasharray:`${L} ${L}`,strokeDashoffset:L},{strokeDasharray:`${L} ${L}`,strokeDashoffset:0}],{duration:dur,delay:delay+i*stagger,easing:EASE,fill:'backwards'});});
+}
+function underline(sel,{delay=0,stagger=140,dur=600}={}){
+ if(!ANIM)return;
+ document.querySelectorAll(sel).forEach((el,i)=>el.animate([{backgroundSize:'0% 6px'},{backgroundSize:'100% 6px'}],{duration:dur,delay:delay+i*stagger,easing:EASE,fill:'backwards'}));
+}
+function countUp(el,to,{delay=0,dur=800}={}){
+ if(!ANIM||!el)return;
+ const g=generation,t0=performance.now()+delay;el.textContent='0';
+ (function tick(now){if(g!==generation)return;const p=Math.max(0,Math.min(1,(now-t0)/dur));el.textContent=String(Math.round(to*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(tick);})(performance.now());
+}
+
+/* ---------- Peces ---------- */
+const citeCard=(r,i,{v=false,st='',badgeHtml='',reflex=null}={})=>
+ `<div class="cite ${v?'v':''} ${st}"${reflex!=null?` data-reflex style="--dr:${reflex}ms"`:''}><i class="edge"></i><div class="num">${i+1}</div><div class="body">${badgeHtml?`<div class="row1"><div class="author">${esc(r.author)} (${esc(r.year)}).</div>${badgeHtml}</div>`:`<div class="author">${esc(r.author)} (${esc(r.year)}).</div>`}<div class="title">${esc(r.title)}</div></div></div>`;
+const docCard=(reflex=null)=>`<div class="doc" data-doc${reflex!=null?` data-reflex style="--dr:${reflex}ms"`:''}><div class="kicker">${ic('doc',34)}${esc(T.sameText)}</div><div class="txt">${esc(T.sharedText)}</div></div>`;
+const qa=(critical,cls='',flash=null)=>`<div class="pair ${cls}">${userMsg(esc(critical?T.criticismQuestion:T.praiseQuestion))}${aiMsg(`<div class="kicker">${esc(T.simulatedAnswer)}</div><div class="txt2">${esc(critical?T.criticism:T.praise)}</div>`,'',critical?'crit':'praise',flash!=null?` data-encen data-llum="${critical?'coral':'amber'}" style="--d:${flash}ms"`:'')}</div>`;
+const piiSentence=()=>`<span class="pii">${esc(T.privacyName)}</span>${esc(T.privacyPrefix)}<span class="pii">${esc(T.privacyAge)}</span>${esc(T.privacyPrefix)}<span class="pii">${esc(T.privacyGroup)}</span>${esc(T.privacySuffix)}`;
+
+function a7Refs(){
+ show(`<div class="a7 mid">${userMsg(esc(T.question))}${aiMsg(`<div class="cols3">${T.references.map((r,i)=>citeCard(r,i,{v:true,reflex:900+i*130})).join('')}</div>`,'',"cites")}</div>`,T.referenceCaption,T.referenceNote,T.simulatedValues);
+ rise('.msg.user',{dx:40,dy:0});
+ rise('.msg.ai',{delay:220,dx:-40,dy:0});
+ rise('.cols3 .cite',{delay:480,stagger:90});
+}
+function a7Verify(step,cont){
+ const second=step===2;
+ const states=T.references.map((r,i)=>i===0?'ok':(second?(i===1?'diff':'miss'):''));
+ const bd=T.references.map((r,i)=>i===0?badge('green',T.catalogMatch,'check',second?null:750):(second?(i===1?badge('amber',T.catalogWrongYear,'neq',cont?530:840):badge('coral',T.catalogMissing,'cross',cont?710:950)):badge('wait',T.catalogPending,'clock')));
+ const cards=T.references.map((r,i)=>citeCard(r,i,{st:states[i],badgeHtml:bd[i]})).join('');
+ const slots=[
+  `<div class="slot ok"><div class="d">${ic('check',30)}</div><div class="tx"><div class="who">${esc(T.references[0].author)}</div><div class="what">${esc(T.catalogFirst)}</div></div></div>`,
+  second?`<div class="slot diff"><div class="d">${ic('neq',30)}</div><div class="tx"><div class="who">${esc(T.references[1].author)}</div><div class="yrs"><span class="yr">${esc(T.quotedYear)}</span><span class="yr cat-y">${esc(T.catalogYear)}</span></div></div></div>`
+        :`<div class="slot wait"><div class="d">${ic('clock',28)}</div><div class="tx"><div class="who">${esc(T.references[1].author)}</div></div></div>`,
+  second?`<div class="slot miss"><div class="d">${ic('cross',28)}</div><div class="tx"><div class="who">${esc(T.references[2].author)}</div><div class="what">${esc(T.catalogThird)}</div></div></div>`
+        :`<div class="slot wait"><div class="d">${ic('clock',28)}</div><div class="tx"><div class="who">${esc(T.references[2].author)}</div></div></div>`
+ ].join('');
+ show(`<div class="a7 verify"><div class="msg ai fill">${av('ai')}<div class="bub ai">${cards}</div></div><aside class="cat"><div class="hd"><span class="lens">${ic('lens',36)}</span>${esc(T.catalog)}</div>${slots}</aside></div>`,
+  second?T.inventedCaption:T.matchCaption,T.catalogNote,T.simulatedValues);
+ if(!second){
+  if(ANIM){document.querySelectorAll('.verify .cite').forEach((el,i)=>el.animate([{opacity:0,transform:'translateY(10px)'},{opacity:1,transform:'translateY(0px)'}],{duration:420,delay:i*50,easing:EASE,fill:'backwards'}));}
+  rise('.cat',{delay:150,dx:50,dy:0});
+  pop('.cite .badge',{delay:520,stagger:110});
+  rise('.slot',{delay:600,stagger:110,dy:14});
+ }else{
+  rise('.cat',{dx:cont?0:50,dy:0,dur:cont?1:600});
+  if(cont){
+   const blue=getComputedStyle(document.documentElement).getPropertyValue('--blue').trim();
+   [1,2].forEach((i,k)=>{
+    const c=document.querySelectorAll('.verify .cite')[i];
+    const bg=getComputedStyle(c).backgroundColor,eb=getComputedStyle(c.querySelector('.edge')).backgroundColor;
+    motion(c,[{backgroundColor:'#F8F6EF'},{backgroundColor:bg}],{delay:300+k*180,fill:'backwards'});
+    motion(c.querySelector('.edge'),[{backgroundColor:blue},{backgroundColor:eb}],{delay:300+k*180,fill:'backwards'});
+   });
+   pop('.cite:nth-child(n+2) .badge',{delay:300,stagger:180});
+   rise('.slot:nth-child(n+3)',{delay:420,stagger:180,dy:14});
+  }else{
+   rise('.cite',{delay:100,stagger:70});pop('.cite .badge',{delay:500,stagger:110});rise('.slot',{delay:500,stagger:110,dy:14});
+  }
+ }
+}
+function a7Prob(){
+ const panel=(items,label,pi)=>`<section class="prob"><div class="hd">${esc(label)}</div>${items.map((x,i)=>`<div class="prow ${i===0?'top':''}"><span class="nm">${esc(x.name)}</span><div class="bar ${i===0?'coral':''}"${i===0?` data-encen data-llum="coral" style="--d:${886+pi*120}ms"`:''}><i style="--w:${x.p}%" data-p="${x.p}"></i></div><span class="pc"><span class="n">${x.p}</span> ${esc(T.percent)}</span></div>`).join('')}</section>`;
+ let line=esc(T.assembledReference);
+ [T.surnameCandidates[0].name,T.yearCandidates[0].name].forEach(n=>{line=line.replace(esc(n),m=>`<mark>${m}</mark>`);});
+ show(`<div class="a7"><div class="probs">${panel(T.surnameCandidates,T.surname,0)}${panel(T.yearCandidates,T.year,1)}</div><div class="msg ai ctr">${av('ai')}<div class="bub ai assembled">${line}</div></div></div>`,T.probabilityCaption,T.probabilityNote,T.simulatedValues);
+ rise('.prob',{stagger:100});
+ document.querySelectorAll('.prob').forEach((p,pi)=>p.querySelectorAll('.bar>i').forEach((el,ri)=>{
+  if(!ANIM)return;
+  const d=380+pi*120+ri*110;
+  el.animate([{width:'0%'},{width:el.dataset.p+'%'}],{duration:800,delay:d,easing:EASE,fill:'backwards'});
+  countUp(p.querySelectorAll('.pc .n')[ri],+el.dataset.p,{delay:d,dur:800});
+ }));
+ rise('.assembled',{delay:1000,dx:-30,dy:0});
+ rise('.msg.ai .av',{delay:1000,dx:-30,dy:0});
+}
+function a7Cutoff(){
+ show(`<div class="a7"><div class="tl"><div class="seg train">${esc(T.training)}</div><div class="seg after">${esc(T.afterCutoff)}</div><div class="cutline" data-encen data-llum="coral" style="--d:900ms"></div><div class="cutlabel">${ic('calendar',34)}${esc(T.cutoff)}</div>
+  <svg class="axis" viewBox="0 0 1776 44" aria-hidden="true"><path class="stroke" d="M4 22H1758"/><path class="stroke" d="M1736 6L1762 22L1736 38"/></svg></div>
+  <div class="cards2"><div class="card tint-blue l"><div class="ico">${ic('database',44)}</div>${esc(T.trainingPast)}</div>
+  <div class="card dashed r"><div class="chips"><span class="chip c2">${ic('chat',34)}${esc(T.contextNew)}</span><span class="chip c2">${ic('globe',34)}${esc(T.webNew)}</span></div>${esc(T.newInformation)}</div></div></div>`,T.cutoffCaption,T.cutoffNote,T.simulated);
+ draw('.axis path:first-child',{dur:800});draw('.axis path:last-child',{delay:700,dur:300});
+ grow('.seg.train',{delay:100,dur:800});
+ rise('.seg.after',{delay:600,dy:0,dx:20});
+ grow('.cutline',{delay:700,dur:500,axis:'Y',origin:'top center'});
+ pop('.cutlabel',{delay:650,dur:500});
+ rise('.cards2 .card.l',{delay:900});rise('.cards2 .card.r',{delay:1000});
+}
+function a7Sycophancy(step,cont){
+ const critical=step===6;
+ if(!critical){
+  show(`<div class="a7 s6">${docCard(700)}<div class="chat">${qa(false,'',850)}</div></div>`,T.praiseCaption,T.sycophancyNote,T.simulated);
+  rise('.doc',{dx:-30,dy:0});
+  rise('.pair .msg.user',{delay:250,dx:40,dy:0});
+  rise('.pair .msg.ai',{delay:550,dx:-30,dy:0});
+ }else{
+  show(`<div class="a7 s7">${docCard()}<div class="cols">${qa(false,'old')}${qa(true,'new',900)}</div></div>`,T.criticismCaption,T.sycophancyNote,T.simulated);
+  if(ANIM){
+   if(!cont)rise('.doc',{dy:0,dx:-30});
+   document.querySelector('.pair.old').animate([{opacity:1},{opacity:.55}],{duration:600,easing:EASE,fill:'backwards'});
+   rise('.pair.new .msg.user',{delay:250,dx:40,dy:0});
+   rise('.pair.new .msg.ai',{delay:600,dx:-30,dy:0});
+  }
+ }
+}
+function a7Bias(){
+ const story=esc(T.biasAnswer).replace(/(director|recepcionista)/g,m=>`<mark>${m}</mark>`);
+ const as=(role,gen,k)=>`<div class="as"><span class="role">${esc(role)}</span>${ic('arrowR',48)}<span class="gen" data-encen data-llum="coral" style="--d:${1230+k*140}ms">${esc(gen)}</span></div>`;
+ show(`<div class="a7 s8 mid">${userMsg(esc(T.biasQuestion))}${aiMsg(`<div class="kicker">${esc(T.simulatedAnswer)}</div><div class="story">${story}</div>`)}<div class="assign">${as(T.doctor,T.man,0)}${as(T.nurse,T.woman,1)}</div></div>`,T.biasCaption,T.biasNote,T.simulated);
+ rise('.msg.user',{dx:40,dy:0});
+ rise('.msg.ai',{delay:250,dx:-40,dy:0});
+ rise('.as',{delay:750,stagger:140});
+ pop('.as .gen',{delay:1000,stagger:140});
+}
+function a7Reasoning(){
+ const parts=T.failedCheck.split('≠');
+ const eq=parts.length===2?`${esc(parts[0])}<span class="bad">≠${esc(parts[1])}</span>`:esc(T.failedCheck);
+ show(`<div class="a7">${userMsg(esc(T.reasoningQuestion))}<div class="duo"><section class="card"><div class="kicker">${esc(T.summarizedSteps)}</div><div class="lines">
+  <div class="ln"><span class="num">1</span><span class="t">${esc(T.operation)}</span></div>
+  <div class="ln bad"><span class="num">2</span><span class="t">${esc(T.wrongIntermediate)}<i class="mk"></i></span><span class="x">${ic('cross',40)}</span></div>
+  <div class="ln"><span class="num">3</span><span class="t">${esc(T.wrongAnswer)}</span></div></div></section>
+  <div class="arr">${ic('arrowR',56)}</div>
+  <section class="card"><div class="kicker">${esc(T.checkResult)}</div><div class="eq" data-encen data-llum="coral" style="--d:1700ms">${eq}</div><div class="fix" data-encen data-llum="green" style="--d:1950ms"><span class="d">${ic('check',30)}</span>${esc(T.correctAnswer)}</div></section></div></div>`,T.reasoningCaption,T.reasoningNote,T.simulatedValues);
+ rise('.msg.user',{dx:40,dy:0});
+ rise('.duo .card:first-child',{delay:250});
+ rise('.ln',{delay:450,stagger:110,dy:14});
+ grow('.ln .mk',{delay:950,dur:500});
+ rise('.duo .arr',{delay:1100,dx:-14,dy:0,dur:400});
+ rise('.duo .card:last-child',{delay:1150});
+ pop('.eq',{delay:1500,dur:500});
+ pop('.fix',{delay:1750,dur:500});
+}
+function a7Confidence(){
+ const meta=[['green','check'],['amber','approx'],['gray','help']];
+ const rows=T.confidenceRows.map((r,i)=>`<div class="confrow ${meta[i][0]}"><i class="edge"></i><span class="badge ${meta[i][0]}"${i<2?` data-encen data-llum="${meta[i][0]}" style="--d:${800+i*130}ms"`:''}><span class="d">${ic(meta[i][1],30)}</span>${esc(r.label)}</span><span class="ans">${esc(r.answer)}</span></div>`).join('');
+ show(`<div class="a7">${userMsg(esc(T.confidenceQuestion))}<div class="msg ai fill">${av('ai')}<div class="bub ai stackbub">${rows}</div></div></div>`,T.confidenceCaption,T.confidenceNote,T.simulatedValues);
+ rise('.msg.user',{dx:40,dy:0});
+ rise('.msg.ai',{delay:250,dx:-40,dy:0});
+ rise('.confrow',{delay:500,stagger:130});
+}
+function a7Privacy(){
+ show(`<div class="a7 s11"><div class="msg user"><div class="stack"><div class="kicker"><i class="sq"></i>${esc(T.identifyingData)}</div><div class="bub user">${piiSentence()}</div></div>${av('user')}</div>
+  <div class="nopaste" data-encen data-llum="coral" style="--d:1300ms"><div class="d">${ic('ban',60)}</div><div><div class="lab">${esc(T.removeData)}</div><div class="strong">${esc(T.doNotPaste)}</div></div></div></div>`,T.identifiedCaption,T.identifiedNote,T.fictitiousValues);
+ rise('.msg.user',{dx:40,dy:0});
+ underline('.pii',{delay:650,stagger:160});
+ rise('.nopaste',{delay:1000});
+}
+function a7Anonymous(cont){
+ const transform=cont;
+ const safe=esc(T.anonymousSentence).replace(/(Una alumna adulta|d’un grup de GES)/g,m=>`<span class="safe">${m}</span>`);
+ show(`<div class="a7 s12"><div class="left"><div class="kick kicker"><i class="sq green"></i>${esc(T.anonymizedData)}</div><div class="msg user"><div class="bub user anon"><div class="after">${safe}</div>${transform?`<div class="before" aria-hidden="true">${piiSentence()}</div>`:''}</div>${av('user')}</div></div>
+  <aside class="temp"><div class="hd">${ic('chatd',52)}${esc(T.temporaryChat)}</div><div class="sw" data-encen data-llum="green" style="--d:1000ms"><div class="knob">${ic('check',46)}</div></div><div class="on">${esc(T.activated)}</div><span class="concept">${esc(T.conceptualOption)}</span></aside></div>`,T.anonymousCaption,T.anonymousNote,T.fictitious);
+ if(!ANIM)return;
+ if(transform){
+  document.querySelector('.before').animate([{opacity:1,transform:'translateX(0px)'},{opacity:0,transform:'translateX(-24px)'}],{duration:600,easing:EASE,fill:'both'});
+  document.querySelector('.anon .after').animate([{opacity:0,transform:'translateX(24px)'},{opacity:1,transform:'translateX(0px)'}],{duration:600,delay:260,easing:EASE,fill:'backwards'});
+  underline('.safe',{delay:900,stagger:140});
+ }else{
+  rise('.s12 .msg.user',{dx:40,dy:0});underline('.safe',{delay:600,stagger:140});
+ }
+ rise('.temp',{delay:250,dx:50,dy:0});
+ const sw=document.querySelector('.sw'),knob=document.querySelector('.sw .knob');
+ sw.animate([{backgroundColor:'#BDB8AC'},{backgroundColor:getComputedStyle(document.documentElement).getPropertyValue('--green').trim()}],{duration:500,delay:850,easing:EASE,fill:'backwards'});
+ knob.animate([{transform:'translateX(-116px)'},{transform:'translateX(0px)'}],{duration:600,delay:800,easing:EASE,fill:'backwards'});
+ knob.querySelector('svg').animate([{opacity:0},{opacity:1}],{duration:300,delay:1250,fill:'backwards'});
+ rise('.temp .on',{delay:1100,dy:10,dur:400});rise('.temp .concept',{delay:1200,dy:10,dur:400});
+}
+function a7Render(step,previous){
+ ANIM=step>=previous&&!reduced();
+ const cont=ANIM&&previous===step-1;
+ if(step===0)a7Refs();
+ else if(step===1||step===2)a7Verify(step,cont);
+ else if(step===3)a7Prob();
+ else if(step===4)a7Cutoff();
+ else if(step===5||step===6)a7Sycophancy(step,cont);
+ else if(step===7)a7Bias();
+ else if(step===8)a7Reasoning();
+ else if(step===9)a7Confidence();
+ else if(step===10)a7Privacy();
+ else a7Anonymous(cont);
+}
+/* Fons temàtic (el crida IA-S1-comu.js): fulls de paper i fitxes amb cantell de color flotant sobre dos plans en perspectiva.
+   Alguns s'aixequen (translateZ) i giren un pèl. Les ratlles grises fan de línies de text; no hi ha text. */
+window.fonsIA=function(capa){
+ const K=['#2F55D4','#16805E','#C98512','#D2462A'];
+ let seed=11;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+ function pla(cls,cols,rows,dx,dy,n){
+  let h=`<div class="pla ${cls}">`;
+  for(let i=0;i<n;i++){
+   const c=i%cols,r=Math.floor(i/cols);
+   const x=Math.round(c*dx+rnd()*70-20),y=Math.round(r*dy+rnd()*70-20);
+   const z=rnd()>.72?110:(rnd()>.5?50:0),rot=((rnd()-.5)*30).toFixed(1);
+   h+=(i%3===1||i%5===4)?`<i class="ficha" style="left:${x}px;top:${y}px;--z:${z}px;--r:${rot}deg;--k:${K[i%4]}"></i>`
+                        :`<i class="hoja" style="left:${x}px;top:${y}px;--z:${z}px;--r:${rot}deg"></i>`;
+  }
+  return h+'</div>';
+ }
+ capa.innerHTML=pla('a',5,4,300,330,19)+pla('b',2,5,330,300,9);
+};
+boot(12,a7Render);
+
+</script><script src="IA-S1-comu.js"></script></body></html>

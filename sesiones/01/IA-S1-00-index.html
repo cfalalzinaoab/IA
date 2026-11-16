@@ -1,0 +1,305 @@
+<!doctype html>
+<!--
+Índex local de les vuit animacions de la sessió 1 (v2, 13-10-2026).
+Data, hora i títol: encàrrec del formador del CFA L’Alzina.
+Minuts: estimacions de planificació (6+5+10+8+9+7+15+6 = 66 min), no dades de cap model.
+Queden 24 min dins la sessió de 90 min per a introducció, Transformer Explainer i conversa.
+Els minuts es conserven a TEXTOS però ja no es mostren en pantalla: cada targeta indica el nombre de passos.
+Els nou HTML han de romandre junts, amb IA-S1-estil.css i IA-S1-comu.js. No depenen de cap servidor.
+
+Material docent local, versió 2. Totes les dades il·lustratives es marquen en pantalla.
+v3 (13-10-2026): profunditat. Targetes com a baldosas amb gruix que s'aixequen en triar-les, icones amb relleu, fons de tecles en perspectiva (window.fonsIA).
+v4 (13-10-2026): llum. Baldosas retroil·luminades amb el color del bloc; l'elegida amb halo, toll de llum, píndola i tecla il·luminades i dibuix amb resplendor;
+en carregar, cada baldosa s'encén en aterrar i un reflex les travessa en onada (una sola vegada); algunes tecles del fons retroil·luminades.
+La barra de la frase ja no s'encén en canviar de targeta (IA-S1-comu.js). L'índex no carrega IA-S1-ritme.js: el menú respon a l'instant.
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entendre com funciona la IA</title><style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit;color:var(--ink)}
+button{cursor:pointer}
+#index{display:none}
+
+/* ---------- Rejilla 4×2: ocupa justo la escena (1776×612) ---------- */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);gap:26px;height:calc(100% - 14px);perspective:1800px;perspective-origin:50% 30%}
+
+/* Cada tarjeta lleva el color de su bloque: --c (fuerte) y --cs (suave) */
+a.tile{--c:var(--blue);--cs:var(--blue-soft);--ce:#9FB4F1;
+  position:relative;display:flex;flex-direction:column;min-width:0;min-height:0;padding:0;overflow:hidden;
+  text-decoration:none;color:var(--ink);cursor:pointer;transform-origin:50% 100%;
+  /* v3: baldosa con grosor. Una sola luz arriba a la izquierda: brillo arriba, canto de color abajo, sombra de contacto y ambiente */
+  box-shadow:0 9px 0 var(--ce),0 11px 0 rgba(21,23,28,.10),0 24px 28px -14px rgba(21,23,28,.40);
+  transition:transform .45s var(--ease),box-shadow .45s var(--ease),border-color .45s var(--ease)}
+a.tile.b-green{--c:var(--green);--cs:var(--green-soft);--ce:#8DCBAD}
+a.tile.b-coral{--c:var(--coral);--cs:var(--coral-soft);--ce:#E8A88E}
+a.tile.b-violet{--c:var(--violet);--cs:var(--violet-soft);--ce:#B7A4EE}
+
+/* Zona de color: pastilla, nº de pasos, tecla y dibujo */
+.plate{flex:none;height:172px;display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:48px 1fr;
+  column-gap:16px;align-items:center;padding:16px 16px 8px 20px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--cs) 55%,#fff) 0%,var(--cs) 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),inset 0 -2px 0 color-mix(in srgb,var(--c) 14%,transparent)}
+.piece{display:inline-flex;align-items:center;justify-content:center;min-width:84px;height:48px;padding:0 16px;
+  border-radius:999px;background:var(--c);color:#fff;font-size:32px;font-weight:700;letter-spacing:.04em;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 color-mix(in srgb,var(--c) 70%,#000),0 9px 12px -6px rgba(21,23,28,.4)}
+.steps{font-size:32px;font-weight:600;color:var(--muted);white-space:nowrap}
+.key{--edge:#CFC8B8;display:inline-flex;align-items:center;justify-content:center;width:46px;height:44px;border-radius:12px;
+  border:0;background:var(--surface-grad);color:var(--muted);
+  font-family:var(--font);font-size:32px;font-weight:600;line-height:1;box-shadow:var(--key);margin-bottom:6px;
+  transition:color .3s var(--ease),box-shadow .3s var(--ease),transform .3s var(--ease)}
+
+/* Dibujos: trazo uniforme de 4 px, extremos redondeados */
+.ic{grid-column:1/-1;grid-row:2;justify-self:center;align-self:center;width:360px;height:96px;overflow:visible;
+  /* relieve: una extrusión sólida hacia abajo-derecha (la luz viene de arriba-izquierda) y una sombra suave */
+  filter:drop-shadow(0 11px 7px rgba(21,23,28,.15))}
+/* solo las formas cerradas llevan extrusión (grosor); las líneas finas solo la sombra suave, para que no parezcan dobles */
+.ic .w,.ic .t,.ic .f,.ic .af{filter:drop-shadow(2px 4px 0 color-mix(in srgb,var(--sh,var(--c)) 42%,transparent))}
+.ic .a{--sh:var(--coral)}
+.ic *{stroke-width:4px;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.ic .s{stroke:var(--c)}
+.ic .n{stroke:var(--ink);stroke-opacity:.55}
+.ic .n.track{stroke-opacity:.22}
+.ic .a{stroke:var(--coral)}
+.ic .w{fill:var(--gw,#fff)}
+.ic .t{fill:var(--gt,color-mix(in srgb,var(--c) 26%,#fff))}
+.ic .f{fill:var(--gf,var(--c))}
+.ic .af{fill:var(--ga,color-mix(in srgb,var(--coral) 18%,#fff))}
+.ic .d{stroke-dasharray:1 9}
+.ic .h{stroke-opacity:.45}
+
+/* Título */
+.body{flex:1;min-height:0;display:flex;align-items:center;padding:0 24px}
+.name{font-family:var(--font-display);font-size:40px;line-height:1.1;font-weight:700;letter-spacing:-.01em;text-wrap:balance;max-width:330px}
+
+/* Elegida (flechas, ratón o Tab): anillo del color del bloque y se levanta */
+/* Elegida (flechas, ratón o Tab): se levanta del plano (translateZ + una leve inclinación hacia atrás), el canto crece y la sombra se alarga */
+a.tile.sel{z-index:2;border-color:var(--c);transform:translateY(-10px) translateZ(10px) rotateX(3deg);
+  box-shadow:0 0 0 4px var(--c),0 15px 0 4px var(--ce),0 17px 0 4px rgba(21,23,28,.12),0 46px 44px -18px rgba(21,23,28,.46)}
+a.tile.sel .key{color:var(--c)}
+/* Al pulsar, la baldosa se hunde como una tecla */
+a.tile:active{transform:translateY(2px);box-shadow:0 3px 0 var(--ce),0 4px 0 rgba(21,23,28,.10),0 8px 12px -8px rgba(21,23,28,.4)}
+/* Foco de teclado (Tab): segundo anillo, oscuro y separado */
+a.tile:focus-visible{outline:4px solid var(--ink);outline-offset:8px}
+
+/* ---------- v3 · Fons: un camp de tecles en perspectiva (els colors dels blocs), a dalt a la dreta, que s'esvaeix cap al contingut ---------- */
+#fons{opacity:.8;filter:blur(.8px) saturate(1.08);
+  -webkit-mask-image:radial-gradient(1500px 1000px at 104% -6%,#000 26%,rgba(0,0,0,.55) 46%,transparent 74%);
+          mask-image:radial-gradient(1500px 1000px at 104% -6%,#000 26%,rgba(0,0,0,.55) 46%,transparent 74%)}
+#fons .pla{position:absolute;left:780px;top:-260px;width:1600px;height:1100px;transform-style:preserve-3d;
+  transform:rotateX(58deg) rotateZ(-26deg)}
+#fons .pla i{position:absolute;height:84px;border-radius:18px;background:var(--c);transform:translateZ(var(--z));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 12px 0 var(--e),0 30px 30px -12px rgba(21,23,28,.38)}
+
+/* ---------- v4 · Llum ----------
+   --lc = color del bloc en R,G,B. Cada baldosa és retroil·luminada: una mica de llum del seu color sobre la taula.
+   L'elegida s'encén: halo del seu color, toll de llum a sota, píndola i tecla il·luminades i el dibuix amb resplendor.
+   L'encesa d'entrada i el reflex corren una sola vegada, en carregar l'índex (JS). Res en bucle. */
+a.tile{--lc:47,85,212;
+  box-shadow:0 9px 0 var(--ce),0 11px 0 rgba(21,23,28,.10),0 24px 28px -14px rgba(21,23,28,.40),0 30px 34px -14px rgba(var(--lc),.30)}
+a.tile.b-green{--lc:22,128,94}
+a.tile.b-coral{--lc:210,70,42}
+a.tile.b-violet{--lc:106,79,214}
+a.tile.sel{box-shadow:0 0 0 4px var(--c),0 15px 0 4px var(--ce),0 17px 0 4px rgba(21,23,28,.12),0 46px 44px -18px rgba(21,23,28,.46),
+  0 48px 54px -16px rgba(var(--lc),.55),0 0 30px 6px rgba(var(--lc),.38),0 0 80px 18px rgba(var(--lc),.18)}
+/* la píndola de l'elegida brilla com la de la capçalera de les peces */
+.piece{transition:box-shadow .45s var(--ease)}
+a.tile.sel .piece{box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 color-mix(in srgb,var(--c) 70%,#000),0 9px 12px -6px rgba(21,23,28,.4),
+  0 0 22px 3px rgba(var(--lc),.50),0 0 54px 10px rgba(var(--lc),.22)}
+/* la tecla del número, retroil·luminada amb el color del bloc */
+a.tile.sel .key{--edge:var(--ce);background:linear-gradient(180deg,#fff 0%,color-mix(in srgb,var(--c) 12%,#fff) 100%);
+  text-shadow:0 0 12px rgba(var(--lc),.55);box-shadow:var(--key),inset 0 0 14px rgba(var(--lc),.24),0 0 18px 2px rgba(var(--lc),.42)}
+/* el dibuix de l'elegida desprèn una resplendor suau del seu color */
+.ic{filter:drop-shadow(0 11px 7px rgba(21,23,28,.15)) drop-shadow(0 0 12px rgba(var(--lc),0));transition:filter .45s var(--ease)}
+a.tile.sel .ic{filter:drop-shadow(0 11px 7px rgba(21,23,28,.15)) drop-shadow(0 0 12px rgba(var(--lc),.42))}
+/* en prémer, la baldosa s'enfonsa com una tecla (repetit aquí perquè guanyi a l'elegida d'aquesta secció) */
+a.tile:active{box-shadow:0 3px 0 var(--ce),0 4px 0 rgba(21,23,28,.10),0 8px 12px -8px rgba(21,23,28,.4),0 12px 20px -8px rgba(var(--lc),.42)}
+/* reflex: una franja de llum que travessa la baldosa (l'anima el JS una sola vegada) */
+a.tile::after{content:"";position:absolute;top:-30%;bottom:-30%;left:0;width:34%;pointer-events:none;z-index:1;
+  background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.72) 50%,rgba(255,255,255,0));
+  transform:translateX(-170%) skewX(-16deg);opacity:0}
+/* fons: unes quantes tecles retroil·luminades, com a A1 */
+#fons .pla i.lit{box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 0 18px rgba(255,255,255,.45),0 12px 0 var(--e),0 0 34px 8px rgba(var(--gl),.72),0 0 96px 26px rgba(var(--gl),.34),0 30px 30px -12px rgba(21,23,28,.30)}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"></head><body data-animation="index"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "CFA L’Alzina · IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Av Pàg / Re Pàg: tria     Retorn: obre     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "Entendre com funciona la IA",
+  "stamp": "",
+  "caption": "Tria una animació: teclat 1–8 o clic.",
+  "note": "Sessió 1: 16 d’octubre de 2026, de 11.30 a 13.00.",
+  "minute": "min",
+  "stepsLabel": "passos",
+  "entries": [
+    {
+      "piece": "A1",
+      "title": "Del text als tokens",
+      "file": "IA-S1-01-tokens.html",
+      "steps": 6,
+      "minutes": 6
+    },
+    {
+      "piece": "A2",
+      "title": "Dels tokens als vectors",
+      "file": "IA-S1-02-vectors.html",
+      "steps": 5,
+      "minutes": 5
+    },
+    {
+      "piece": "A3",
+      "title": "Predir el token següent",
+      "file": "IA-S1-03-prediccio.html",
+      "steps": 7,
+      "minutes": 10
+    },
+    {
+      "piece": "A4",
+      "title": "L’atenció: com usa el context",
+      "file": "IA-S1-04-atencio.html",
+      "steps": 6,
+      "minutes": 8
+    },
+    {
+      "piece": "A5",
+      "title": "Entrenament i inferència",
+      "file": "IA-S1-05-entrenament.html",
+      "steps": 7,
+      "minutes": 9
+    },
+    {
+      "piece": "A6",
+      "title": "D'on surt una resposta?",
+      "file": "IA-S1-06-origens.html",
+      "steps": 6,
+      "minutes": 7
+    },
+    {
+      "piece": "A7",
+      "title": "Que soni bé no el fa cert.",
+      "file": "IA-S1-07-errors.html",
+      "steps": 12,
+      "minutes": 15
+    },
+    {
+      "piece": "A8",
+      "title": "Els atractors, com a analogia",
+      "file": "IA-S1-08-atractors.html",
+      "steps": 6,
+      "minutes": 6
+    }
+  ]
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current=0, totalSteps=1, drawStep, generation=0;
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+function motion(el,frames,options={}){if(!el||reduced())return null;return el.animate(frames,{duration:600,easing:'ease-in-out',fill:'both',...options});}
+function show(html,caption='',note='',stamp=''){
+ $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+ const easing='cubic-bezier(.2,.8,.2,1)';
+ motion($('#scene'),[{opacity:.86,transform:'translateY(10px)'},{opacity:1,transform:'translateY(0)'}],{duration:620,easing});
+ if(caption)motion($('#caption'),[{opacity:.8,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'}],{duration:660,easing});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ motion($('#title'),[{opacity:.86,transform:'translateY(9px)'},{opacity:1,transform:'translateY(0)'}],{duration:650,easing:'cubic-bezier(.16,.78,.25,1)'});
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* ---------- Índice: ocho tarjetas, una por animación ---------- */
+/* Colores por bloque: A1–A3 azul, A4–A6 verde, A7 coral, A8 violeta */
+const BLOCKS=['blue','blue','blue','green','green','green','coral','violet'];
+/* v4 · Llum: el color de cada bloque en R,G,B (el mismo --lc del CSS) */
+const LC={blue:'47,85,212',green:'22,128,94',coral:'210,70,42',violet:'106,79,214'};
+/* Dibujos sencillos (sin texto), 360×96, trazo de 4 px */
+const ICONS=[
+ /* A1 · tokens: el texto troceado en piezas */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><rect class="s w" x="7" y="12" width="84" height="32" rx="10"/><rect class="s t" x="101" y="12" width="56" height="32" rx="10"/><rect class="s w" x="167" y="12" width="104" height="32" rx="10"/><rect class="s t" x="281" y="12" width="72" height="32" rx="10"/><rect class="s t" x="7" y="52" width="56" height="32" rx="10"/><rect class="s w" x="73" y="52" width="104" height="32" rx="10"/><rect class="s t" x="187" y="52" width="64" height="32" rx="10"/><rect class="s w" x="261" y="52" width="92" height="32" rx="10"/></svg>`,
+ /* A2 · vectors: mapa de puntos, lo parecido queda cerca */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><path class="n" d="M14 6V88H350"/><ellipse class="s h" cx="84" cy="56" rx="54" ry="28"/><ellipse class="s h" cx="250" cy="38" rx="56" ry="26"/><circle class="s f" cx="62" cy="66" r="8"/><circle class="s f" cx="100" cy="54" r="8"/><circle class="s f" cx="76" cy="44" r="8"/><circle class="s f" cx="224" cy="44" r="8"/><circle class="s f" cx="260" cy="28" r="8"/><circle class="s f" cx="278" cy="46" r="8"/><circle class="s w" cx="322" cy="72" r="8"/></svg>`,
+ /* A3 · predicción: barras de probabilidad, la más alta es la elegida */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><path class="n" d="M8 90H352"/><rect class="a af" x="26" y="16" width="44" height="74" rx="9"/><rect class="s w" x="92" y="40" width="44" height="50" rx="9"/><rect class="s w" x="158" y="56" width="44" height="34" rx="9"/><rect class="s w" x="224" y="68" width="44" height="22" rx="9"/><rect class="s w" x="290" y="76" width="44" height="14" rx="6"/></svg>`,
+ /* A4 · atención: arcos desde la última palabra hacia las anteriores */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><path class="a" d="M36 70C36 -8 324 -8 324 70"/><path class="s" d="M108 70C108 22 324 22 324 70"/><path class="s h" d="M180 70C180 44 324 44 324 70"/><path class="s h" d="M252 70C252 56 324 56 324 70"/><circle class="a w" cx="36" cy="80" r="8"/><circle class="s w" cx="108" cy="80" r="8"/><circle class="s w" cx="180" cy="80" r="8"/><circle class="s w" cx="252" cy="80" r="8"/><circle class="s f" cx="324" cy="80" r="8"/></svg>`,
+ /* A5 · entrenamiento: diales de pesos */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><path class="n track" d="M40.8 75.2A30 30 0 1 1 83.2 75.2"/><path class="s" d="M40.8 75.2A30 30 0 0 1 40.8 32.8"/><circle class="s w" cx="62" cy="54" r="13"/><path class="s" d="M59.2 51.2L54.6 46.6"/><path class="n track" d="M151.7 78.3A40 40 0 1 1 208.3 78.3"/><path class="s" d="M151.7 78.3A40 40 0 1 1 216.3 33.1"/><circle class="s w" cx="180" cy="50" r="19"/><path class="s" d="M185.2 47.6L193.8 43.6"/><path class="n track" d="M276.8 75.2A30 30 0 1 1 319.2 75.2"/><path class="s" d="M276.8 75.2A30 30 0 0 1 305.8 25"/><circle class="s w" cx="298" cy="54" r="13"/><path class="s" d="M299 50.2L300.7 44"/></svg>`,
+ /* A6 · orígenes: documentos, las fuentes */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><path class="s w" d="M42 6H88L110 28V90H42Z"/><path class="s" d="M88 6V28H110"/><path class="s" d="M56 52H96M56 66H96M56 78H78"/><path class="s w" d="M146 6H192L214 28V90H146Z"/><path class="s" d="M192 6V28H214"/><path class="s" d="M160 52H200M160 66H200M160 78H190"/><path class="s w" d="M250 6H296L318 28V90H250Z"/><path class="s" d="M296 6V28H318"/><path class="s" d="M264 52H304M264 66H304M264 78H280"/></svg>`,
+ /* A7 · errores: texto con aviso */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><path class="n" d="M24 30H112M24 48H96M24 66H104"/><path class="n" d="M248 30H336M264 48H336M256 66H336"/><path class="a w" d="M180 8L238 88H122Z"/><path class="a" d="M180 36V60"/><circle class="a f" cx="180" cy="74" r="2"/></svg>`,
+ /* A8 · atractores: un valle y la bola que cae */
+ `<svg class="ic" viewBox="0 0 360 96" aria-hidden="true"><path class="n" d="M10 14C80 14 110 82 180 82C250 82 280 14 350 14"/><circle class="s h" cx="71.5" cy="15.5" r="13" style="stroke-dasharray:6 7"/><circle class="s h" cx="103.4" cy="35.6" r="13" style="stroke-dasharray:6 7"/><circle class="s f" cx="180" cy="67" r="13"/></svg>`
+];
+/* Relieve de los dibujos: cada icono lleva sus degradados (blanco → gris cálido, color claro → color) con id propio; el CSS los usa por variable */
+const iconRelief=(svg,k)=>svg.replace('<svg class="ic"',`<svg class="ic" style="--gw:url(#gw${k});--gt:url(#gt${k});--gf:url(#gf${k});--ga:url(#ga${k})"`)
+ .replace('aria-hidden="true">',`aria-hidden="true"><defs><linearGradient id="gw${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E8E4F2"/></linearGradient><linearGradient id="gt${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,var(--c) 14%,#fff)"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--c) 38%,#fff)"/></linearGradient><linearGradient id="gf${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,var(--c) 62%,#fff)"/><stop offset="1" style="stop-color:var(--c)"/></linearGradient><linearGradient id="ga${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb,var(--coral) 6%,#fff)"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--coral) 28%,#fff)"/></linearGradient></defs>`);
+const tile=(e,k)=>`<a class="card tile b-${BLOCKS[k]}" href="${esc(e.file)}" aria-label="${k+1}. ${esc(e.title)}, ${e.steps} ${esc(TEXTOS.stepsLabel)}"><span class="plate"><span class="piece">${esc(e.piece)}</span><span class="steps">${e.steps} ${esc(TEXTOS.stepsLabel)}</span><kbd class="key" aria-hidden="true">${k+1}</kbd>${iconRelief(ICONS[k],k)}</span><span class="body"><span class="name">${esc(e.title)}</span></span></a>`;
+
+function openAnimation(i){location.href=TEXTOS.entries[i].file;}
+/* La rejilla se dibuja una sola vez; después solo cambia la tarjeta elegida */
+function renderIndex(i){
+ if(!$('#scene .grid')){
+  show(`<div class="grid">${TEXTOS.entries.map(tile).join('')}</div>`,TEXTOS.caption,TEXTOS.note,TEXTOS.stamp);
+  document.querySelectorAll('.tile').forEach((t,k)=>{
+   t.addEventListener('pointermove',()=>go(k));
+   t.addEventListener('focus',()=>go(k));
+   /* Un solo fotograma (offset 0): el final es el estado de CSS (la elegida ya levantada), sin saltos */
+   const d=140+k*70;
+   motion(t,[{offset:0,opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'}],{duration:700,delay:d,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});
+   /* v4 · Llum: al aterrizar, la baldosa se enciende con el color de su bloque (la misma encesa que las piezas)
+      y después un reflejo la cruza; las ocho seguidas forman una ola. Solo esta vez: al elegir no se repite. */
+   const lc=LC[BLOCKS[k]];
+   motion(t,[{filter:`drop-shadow(0 0 0 rgba(${lc},0)) brightness(1)`},{filter:`drop-shadow(0 0 20px rgba(${lc},.95)) brightness(1.16)`,offset:.28},{filter:`drop-shadow(0 0 0 rgba(${lc},0)) brightness(1)`}],{duration:1050,delay:d+380,easing:'cubic-bezier(.2,.8,.2,1)',fill:'none'});
+   motion(t,[{transform:'translateX(-170%) skewX(-16deg)',opacity:0},{opacity:1,offset:.12},{opacity:1,offset:.88},{transform:'translateX(330%) skewX(-16deg)',opacity:0}],{pseudoElement:'::after',duration:1150,delay:d+700,easing:'cubic-bezier(.45,0,.2,1)',fill:'none'});
+  });
+ }
+ const tiles=[...document.querySelectorAll('.tile')];
+ tiles.forEach((t,k)=>{t.classList.toggle('sel',k===i);if(k===i)t.setAttribute('aria-current','true');else t.removeAttribute('aria-current')});
+ const f=document.activeElement;
+ if(f&&f!==tiles[i]&&f.classList.contains('tile'))tiles[i].focus({preventScroll:true});
+}
+/* Fons temàtic (el crida IA-S1-comu.js): files de tecles de mides diferents sobre un pla inclinat, com a A1,
+   pintades amb els colors dels blocs (3 blaves, 3 verdes, 1 corall, 1 violeta, com les targetes). Sense text. */
+window.fonsIA=function(capa){
+ const COL={blue:['#DCE5FF','#9FB4F1'],green:['#D6F1E4','#8DCBAD'],coral:['#FFE0D3','#E8A88E'],violet:['#E9E1FF','#B7A4EE']};
+ const W=[104,150,196,236,132,176];
+ let h='<div class="pla">',k=0;
+ for(let r=0;r<11;r++){
+  let x=(r%3)*46;
+  while(x<1560){
+   const b=BLOCKS[(r*3+k*5)%BLOCKS.length],w=W[(r*5+k*7)%W.length],c=COL[b],z=(r*7+k*13)%9===0?96:((r+k)%5===0?40:((r*3+k)%7===0?18:0));
+   const lit=(r*3+k*5)%6===0;   // v4: unas pocas teclas retroiluminadas, como en A1
+   h+=`<i${lit?' class="lit"':''} style="left:${x}px;top:${r*100}px;width:${w}px;--c:${c[0]};--e:${c[1]};--z:${z}px${lit?';--gl:'+LC[b]:''}"></i>`;
+   x+=w+20;k++;
+  }
+ }
+ capa.innerHTML=h+'</div>';
+};
+boot(8,renderIndex);
+document.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ const onTile=e.target.closest&&e.target.closest('.tile');
+ const take=()=>{e.preventDefault();e.stopImmediatePropagation()};
+ if(/^[1-8]$/.test(e.key)){take();openAnimation(Number(e.key)-1)}
+ else if(e.key==='Enter'||(e.key===' '&&onTile)){take();const idx=onTile?[...document.querySelectorAll('.tile')].indexOf(onTile):-1;openAnimation(idx<0?current:idx)}
+ else if(e.key==='ArrowDown'&&current<4){take();go(current+4)}
+ else if(e.key==='ArrowUp'&&current>=4){take();go(current-4)}
+},true);
+</script><script src="IA-S1-comu.js"></script></body></html>

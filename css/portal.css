@@ -356,6 +356,24 @@ a.modulo:hover .modulo__abrir .icono { transform: translateX(5px); }
 }
 .modulo--vacia > * { transform: none; }
 .modulo--vacia .modulo__num { color: var(--linea-viva); text-shadow: none; }
+
+/* la de muestra: sigue a bordo, en una franja baja al final del archivo */
+.modulo--muestra {
+  grid-column: 1 / -1;
+  flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+  min-height: 0;
+  padding: 10px 16px;
+  border-style: dashed;
+  background: var(--casco);
+  box-shadow: none;
+}
+.modulo--muestra > * { transform: none; }
+.modulo--muestra .modulo__num { font-size: 1.6rem; color: var(--hueso-3); text-shadow: none; }
+.modulo--muestra .modulo__cuerpo { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.modulo--muestra .modulo__titulo { font-size: .82rem; transform: none; color: var(--hueso-2); }
+.modulo--muestra .modulo__datos { margin: 0; padding: 0; line-height: 1.4; }
+.modulo--muestra .modulo__abrir { gap: 8px; padding: 0; border: 0; font-size: .7rem; white-space: nowrap; }
+a.modulo--muestra:hover .modulo__num, a.modulo--muestra:focus-visible .modulo__num { color: var(--fosforo); }
 html.visor-fondo .modulo { background-color: rgba(13, 27, 21, .82); }
 html.visor-fondo .modulo--vacia { background-color: rgba(0, 0, 0, .25); }
 
