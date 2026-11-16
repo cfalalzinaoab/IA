@@ -25,6 +25,9 @@
 
   var catalogo = NAVE.catalogo || { curso: 'Inteligencia artificial', clases: [], proximas: [] };
   var ids = (catalogo.clases || []).map(String);
+  // las sesiones que ya traen su propia presentación: no hay que cargarlas
+  var sesiones = (catalogo.sesiones || []).map(function (s) { s.id = String(s.id); return s; });
+  var muestras = (catalogo.muestras || []).map(String);
   var averiadas = [];
   var lluvia = null;       // los mandos del visor, sea el de 3D o el plano
   var visor3d = null;      // lo mismo, pero solo si es el de 3D
@@ -202,24 +205,45 @@
 
   /* ---------- las bahías -------------------------------------------------- */
 
-  function datosDe(clase) {
+  function rutaPase(id) { return 'clase.html?c=' + encodeURIComponent(id); }
+
+  // Una clase de la nave trae sus diapositivas; una sesión, solo su número.
+  function numeroDiapos(pieza) {
+    return Array.isArray(pieza.diapos) ? pieza.diapos.length : (+pieza.diapos || 0);
+  }
+
+  function datosDe(pieza) {
     var trozos = [];
-    if (clase.fecha) trozos.push(NAVE.fechaCorta(clase.fecha));
-    trozos.push(clase.diapos.length + (clase.diapos.length === 1 ? ' diapositiva' : ' diapositivas'));
-    if (clase.duracion) trozos.push(clase.duracion);
+    var diapos = numeroDiapos(pieza);
+    if (pieza.fecha) trozos.push(NAVE.fechaCorta(pieza.fecha));
+    if (pieza.animaciones) trozos.push(pieza.animaciones + (pieza.animaciones === 1 ? ' animación' : ' animaciones'));
+    else if (diapos) trozos.push(diapos + (diapos === 1 ? ' diapositiva' : ' diapositivas'));
+    if (pieza.duracion) trozos.push(pieza.duracion);
     return trozos.join(' · ');
   }
 
-  function bahiaLista(clase) {
-    return el('a', { class: 'modulo', href: 'clase.html?c=' + encodeURIComponent(clase.id) }, [
+  function bahiaLista(pieza, href, abrir) {
+    return el('a', { class: 'modulo', href: href }, [
       el('div', { class: 'modulo__cabeza' }, [
-        el('span', { class: 'modulo__num' }, clase.id),
+        el('span', { class: 'modulo__num' }, pieza.id),
         el('span', { class: 'ficha' }, [el('span', { class: 'piloto' }), 'Disponible'])
       ]),
-      el('h3', { class: 'modulo__titulo' }, clase.titulo),
-      clase.resumen ? el('p', { class: 'modulo__resumen' }, clase.resumen) : null,
-      el('p', { class: 'modulo__datos micro' }, datosDe(clase)),
-      el('span', { class: 'modulo__abrir', html: '<span>Abrir clase</span>' + NAVE.icono('flecha-der') })
+      el('h3', { class: 'modulo__titulo' }, pieza.titulo),
+      pieza.resumen ? el('p', { class: 'modulo__resumen' }, pieza.resumen) : null,
+      el('p', { class: 'modulo__datos micro' }, datosDe(pieza)),
+      el('span', { class: 'modulo__abrir', html: '<span>' + abrir + '</span>' + NAVE.icono('flecha-der') })
+    ]);
+  }
+
+  // La de muestra sigue a bordo, pero en una franja baja al final del archivo.
+  function bahiaMuestra(clase) {
+    return el('a', { class: 'modulo modulo--muestra', href: rutaPase(clase.id) }, [
+      el('span', { class: 'modulo__num' }, clase.id),
+      el('div', { class: 'modulo__cuerpo' }, [
+        el('h3', { class: 'modulo__titulo' }, clase.titulo),
+        el('p', { class: 'modulo__datos micro' }, 'Muestra del pase · ' + datosDe(clase))
+      ]),
+      el('span', { class: 'modulo__abrir', html: '<span>Ver muestra</span>' + NAVE.icono('flecha-der') })
     ]);
   }
 
@@ -254,38 +278,72 @@
     ]);
   }
 
+  function esMuestra(id) { return muestras.indexOf(id) >= 0 && !!NAVE.clases[id]; }
+
   function pintarBahias() {
     var caja = document.getElementById('bahias');
     caja.textContent = '';
     var cuenta = 0;
+    sesiones.forEach(function (sesion) {
+      caja.appendChild(bahiaLista(sesion, sesion.enlace, 'Abrir sesión'));
+      cuenta++;
+    });
     ids.forEach(function (id) {
-      caja.appendChild(NAVE.clases[id] ? bahiaLista(NAVE.clases[id]) : bahiaAveriada(id));
+      if (esMuestra(id)) return;               // va al final, en pequeño
+      caja.appendChild(NAVE.clases[id] ? bahiaLista(NAVE.clases[id], rutaPase(id), 'Abrir clase') : bahiaAveriada(id));
       cuenta++;
     });
     (catalogo.proximas || []).forEach(function (proxima) {
       caja.appendChild(bahiaEnEspera(proxima));
       cuenta++;
     });
-    // siempre queda alguna bahía libre a la vista: la nave tiene sitio
+    // siempre queda alguna bahía libre a la vista: la nave tiene sitio.
+    // Lleva el número que toca después del más alto que haya a bordo.
+    var siguiente = sesiones.map(function (s) { return s.id; })
+      .concat(ids, (catalogo.proximas || []).map(function (p) { return String(p.id); }))
+      .reduce(function (mayor, id) {
+        var n = parseInt(id, 10);
+        return isNaN(n) ? mayor : Math.max(mayor, n);
+      }, -1) + 1;
     var libres = Math.max(1, 3 - cuenta);
-    for (var i = 0; i < libres; i++) caja.appendChild(bahiaVacia(dos(cuenta + i)));
-    NAVE.relieve.todos('a.modulo', caja);
+    for (var i = 0; i < libres; i++) caja.appendChild(bahiaVacia(dos(siguiente + i)));
+    ids.forEach(function (id) { if (esMuestra(id)) caja.appendChild(bahiaMuestra(NAVE.clases[id])); });
+    NAVE.relieve.todos('a.modulo:not(.modulo--muestra)', caja);
 
-    var listas = ids.filter(function (id) { return NAVE.clases[id]; }).length;
+    var listas = piezasListas(true).length;
     document.getElementById('archivo-codigo').textContent =
       'SEC·A / ' + dos(listas) + (listas === 1 ? ' REGISTRO' : ' REGISTROS');
 
-    var ultima = ultimaClase();
+    var ultima = ultimaPieza();
     var accion = document.getElementById('accion-ultima');
     if (ultima) {
-      accion.textContent = 'Abrir la clase ' + ultima.id;
-      accion.href = 'clase.html?c=' + encodeURIComponent(ultima.id);
+      accion.textContent = (ultima.sesion ? 'Abrir la sesión ' : 'Abrir la clase ') + ultima.pieza.id;
+      accion.href = ultima.href;
     }
   }
 
-  function ultimaClase() {
-    for (var i = ids.length - 1; i >= 0; i--) if (NAVE.clases[ids[i]]) return NAVE.clases[ids[i]];
-    return null;
+  // Todo lo que se puede abrir, en el orden del archivo. Las muestras solo
+  // cuentan si se piden (o si no hay nada más).
+  function piezasListas(conMuestras) {
+    var lista = sesiones.map(function (s) { return { pieza: s, href: s.enlace, sesion: true }; });
+    ids.forEach(function (id) {
+      if (!NAVE.clases[id]) return;
+      if (esMuestra(id) && !conMuestras) return;
+      lista.push({ pieza: NAVE.clases[id], href: rutaPase(id), sesion: false });
+    });
+    return lista;
+  }
+
+  // La que abre el botón grande: la última que ya se ha dado (fecha de hoy o
+  // anterior); si todas están por dar, la primera.
+  function ultimaPieza() {
+    var lista = piezasListas(false);
+    if (!lista.length) lista = piezasListas(true);
+    if (!lista.length) return null;
+    var ahora = new Date();
+    var hoy = ahora.getFullYear() + '-' + dos(ahora.getMonth() + 1) + '-' + dos(ahora.getDate());
+    var dadas = lista.filter(function (p) { return !p.pieza.fecha || p.pieza.fecha <= hoy; });
+    return dadas.length ? dadas[dadas.length - 1] : lista[0];
   }
 
   /* ---------- el laboratorio --------------------------------------------- */
@@ -313,14 +371,14 @@
   function pintarLecturas() {
     var caja = document.getElementById('lecturas');
     if (!caja || !lluvia) return;
-    var listas = ids.filter(function (id) { return NAVE.clases[id]; });
-    var diapos = listas.reduce(function (suma, id) { return suma + NAVE.clases[id].diapos.length; }, 0);
-    var ultima = ultimaClase();
+    var listas = piezasListas(true);
+    var diapos = listas.reduce(function (suma, p) { return suma + numeroDiapos(p.pieza); }, 0);
+    var ultima = ultimaPieza();
     var modo = NAVE.modo.actual();
     var filas = [
       ['Clases a bordo', dos(listas.length)],
       ['Diapositivas', String(diapos)],
-      ['Última carga', ultima && ultima.fecha ? NAVE.fechaCorta(ultima.fecha) : '—'],
+      ['Última carga', ultima && ultima.pieza.fecha ? NAVE.fechaCorta(ultima.pieza.fecha) : '—'],
       ['Visor', nombreVisor(), !llueve || !visor3d],
       ['Sonido', NAVE.sonido.encendido ? 'SÍ' : 'NO', !NAVE.sonido.encendido],
       ['Modo', modo === 'codigo' ? 'CÓDIGO' : modo === 'sala-blanca' ? 'SALA BLANCA' : 'PUENTE', modo !== 'puente']
@@ -366,25 +424,35 @@
     ayuda: 'clases — lo que hay en el archivo',
     hacer: function () {
       var lineas = ['ARCHIVO DE CLASES'];
+      sesiones.forEach(function (s) {
+        lineas.push('  ' + s.id + '  ' + String(s.titulo || '').toUpperCase());
+      });
       ids.forEach(function (id) {
         var clase = NAVE.clases[id];
-        lineas.push('  ' + id + '  ' + (clase ? clase.titulo.toUpperCase() : '— AVERÍA —'));
+        lineas.push('  ' + id + '  ' + (clase ? clase.titulo.toUpperCase() : '— AVERÍA —') +
+          (esMuestra(id) ? '  (muestra)' : ''));
       });
       (catalogo.proximas || []).forEach(function (p) {
         lineas.push('  ' + p.id + '  ' + (p.titulo || 'por anunciar').toUpperCase() + '  (en preparación)');
       });
       if (lineas.length === 1) lineas.push('  (vacío)');
-      lineas.push('Para abrir una: cargar 00');
+      lineas.push('Para abrir una: cargar ' + (sesiones.length ? sesiones[sesiones.length - 1].id : '00'));
       consola.recitar(lineas, null, 35);
     }
   });
 
   consola.registrar('cargar', {
     alias: ['abrir', 'clase', 'cd', 'open'],
-    ayuda: 'cargar 00 — abre esa clase',
+    ayuda: 'cargar 03 — abre esa sesión o clase',
     hacer: function (argumentos) {
       var pedido = (argumentos.join('').match(/\d+/) || [''])[0];
       if (!pedido) { consola.decir('¿Cuál? Por ejemplo: cargar 00', 'ambar'); return; }
+      var sesion = sesiones.filter(function (s) { return parseInt(s.id, 10) === parseInt(pedido, 10); })[0];
+      if (sesion) {
+        consola.decir('CARGANDO SESIÓN ' + sesion.id + ' · ' + String(sesion.titulo || '').toUpperCase() + '…', 'ok');
+        irA(sesion.enlace);
+        return;
+      }
       var id = ids.filter(function (i) { return parseInt(i, 10) === parseInt(pedido, 10); })[0];
       if (!id || !NAVE.clases[id]) {
         NAVE.sonido.error();
@@ -471,7 +539,7 @@
     alias: ['status', 'informe'],
     ayuda: 'estado — informe de sistemas',
     hacer: function () {
-      var listas = ids.filter(function (id) { return NAVE.clases[id]; }).length;
+      var listas = piezasListas(true).length;
       consola.recitar([
         'INFORME DE SISTEMAS · ' + NAVE.fecha() + ' ' + NAVE.hora(),
         '  ARCHIVO ......... ' + listas + ' clase' + (listas === 1 ? '' : 's') + ' a bordo',
@@ -515,7 +583,7 @@
     hacer: function () {
       consola.decir('REINICIANDO…', 'ambar');
       if (visor3d) visor3d.nucleo(false);
-      NAVE.arranque.lanzar({ forzar: true, registros: ids.length }).then(presentar);
+      NAVE.arranque.lanzar({ forzar: true, registros: sesiones.length + ids.length }).then(presentar);
     }
   });
 
@@ -559,7 +627,7 @@
   ponerLluvia(llueve);
   pintarLecturas();
 
-  var arrancado = NAVE.arranque.lanzar({ registros: ids.length });
+  var arrancado = NAVE.arranque.lanzar({ registros: sesiones.length + ids.length });
 
   cargarClases().then(function () {
     pintarBahias();
@@ -568,7 +636,7 @@
   }).then(function (huboArranque) {
     presentar();
     NAVE.sonido.zumbido(true);
-    var listas = ids.length - averiadas.length;
+    var listas = sesiones.length + ids.length - averiadas.length;
     consola.recitar([
       NAVE.nombre + ' 7000 LISTA.',
       listas + (listas === 1 ? ' clase' : ' clases') + ' en el archivo.' +

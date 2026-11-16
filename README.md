@@ -18,6 +18,7 @@ compilación, ni bibliotecas, ni nada que llame a otra web: se abre
 | `laboratorio.html` | los tres aparatos: la red que aprende, el troceador y la palabra siguiente |
 | `clases/indice.js` | **la lista de clases que hay colgadas** |
 | `clases/clase-NN.js` | una clase: solo datos, sin diseño |
+| `sesiones/NN/` | una sesión que ya tiene su propia presentación, tal cual se dio |
 | `img/clase-NN/` | las imágenes de esa clase |
 | `js/pase.js` | el motor de las diapositivas y los catorce tipos que sabe pintar |
 | `js/visor3d.js` | el visor en tres dimensiones: la escena, la cámara y lo que se puede tocar |
@@ -58,6 +59,32 @@ clases: ['00', '01'],
 El título, el resumen, la fecha y el número de diapositivas de la portada
 salen de dentro de cada clase; no se repiten en ningún otro sitio. Para
 anunciar una clase que aún no está, se apunta en `proximas`.
+
+**Una sesión que ya tiene su propia presentación**
+
+Si la clase ya existe como página aparte (unas diapositivas en HTML, unas
+animaciones), no hace falta pasarla al formato de la nave: se copia la
+carpeta entera en `sesiones/NN/` y se añade a la lista `sesiones` de
+`clases/indice.js`, con sus datos y el enlace al HTML que abre:
+
+```js
+sesiones: [
+  { id: '05', titulo: '…', resumen: '…', fecha: '2026-12-11',
+    duracion: '90 min', diapos: 40, enlace: 'sesiones/05/diapositivas.html' }
+],
+```
+
+La bahía abre la presentación tal cual, con su propio diseño y sus teclas.
+En lugar de `diapos` se puede poner `animaciones`. Sesiones y clases
+comparten la numeración, así que no se repite ningún número.
+
+Así están colgadas las cuatro sesiones del curso de IA para docentes del
+CFA Alzina (en catalán, como se dieron).
+
+**En pequeño**
+
+Una clase que se apunta también en `muestras` sigue a bordo, pero sale en
+una franja baja al final del archivo. Es lo que se hace con la 00.
 
 ## Los tipos de diapositiva
 
@@ -168,7 +195,11 @@ rama `main`, carpeta `/ (root)`. A partir de ahí, cada cambio que llega a
   frases de `js/demos/corpus.js`. Enseñan el mecanismo, no imitan a ningún
   modelo real.
 - **La clase 00 es una muestra.** Su contenido está escrito para estrenar la
-  web; se puede dar tal cual, cambiar o quitar de `indice.js`.
+  web; sale en pequeño al final del archivo, y se puede dar tal cual,
+  cambiar o quitar de `indice.js`.
+- **Las sesiones de `sesiones/` van como se dieron.** Son públicas como todo
+  lo demás, incluidas las notas del formador que lleve dentro cada
+  presentación (la de la sesión 2 las tiene, con la tecla N).
 - **Nada sale del navegador.** Lo que se escribe en la consola o en los
   aparatos se calcula ahí mismo. Lo único que se guarda, y en el propio
   navegador, son las preferencias (sonido, visor) y los huevos encontrados.

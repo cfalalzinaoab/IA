@@ -1,0 +1,594 @@
+<!doctype html>
+<!--
+A3 · Predicció del token següent (v2, 13-10-2026: redisseny visual sobre el sistema comú IA-S1-estil.css).
+Valors il·lustratius, sense dades d'un model comercial: repartiment inicial
+38%, 22%, 15%, 12%, 8%, 5% proposat per l'encàrrec docent. Cada repartiment suma 100%.
+Els repartiments de les voltes guiades són exemples construïts per a la classe.
+Temperatura: p_i^(1/T) / suma_j(p_j^(1/T)), calculada al navegador per als
+vuit candidats; després s'agrupen els tres candidats de «resta» en una sola barra.
+Els percentatges visibles de temperatura es reparteixen a dècimes amb el mètode
+del residu més gran, i sumen 100,0%. No s'afirma que siguin probabilitats d'un model real.
+Sorteig: crypto.getRandomValues, Uint32 dividit per 2^32; selecció segons
+intervals acumulats. «Resta» és un grup del 5%; conté tres tokens il·lustratius
+(fred 2%, blau 2%, fosc 1%) mostrejats condicionalment amb un segon sorteig.
+El punt del sorteig és una xifra real generada localment, verificable amb window.a3.
+El pas 3 fa un sorteig nou cada vegada que s'hi entra. Els passos 4–5 reinicien
+explícitament el context per seguir una trajectòria guiada que acaba en la frase demanada.
+Simplificació visible: paraules i grups en lloc dels talls reals d'un tokenitzador.
+La representació de paràmetres usa únicament l'ordre de magnitud autoritzat per l'encàrrec.
+Les cel·les del bloc «Model de llenguatge» (pas 1 i 2) són il·lustratives: no són pesos reals.
+v3 (13-10-2026): profunditat. Bloc «Model» com a caixa 3D amb llums, barres extruïdes, regla del sorteig amb gruix, paraules triades com a tecles,
+tres plafons a la temperatura i fons d'horitzó de barres de probabilitat (window.fonsIA).
+v4 (13-10-2026): llum. La matriu de pesos del bloc «Model» són LED (halo blanc-blavós, encesa en arribar) amb un toll de llum blava sobre la taula i un reflex a la cara frontal;
+cursor coral amb halo; barres amb llum de sota, la guanyadora coral amb halo i punt LED a la punta (la de la temperatura 0,2 més intensa que la de 1,5);
+al sorteig l'agulla és LED a la punta i el segment triat s'encén en coral; les paraules triades (tecles coral) cauen amb halo i encesa; insígnies A/B amb halo;
+alguna barra de l'horitzó del fons amb brillantor pròpia. Res en bucle: les encesas només corren en avançar (body[data-dir]).
+Ritme (13-10-2026): carrega IA-S1-ritme.js al <head>; tot el moviment va més a poc a poc, pel mateix factor (LENT, a IA-S1-ritme.js).
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Predir el token següent</title><style>
+/* Base mínima de l'escenari. Colors, capçalera, frase de baix i navegació: IA-S1-estil.css */
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit;color:inherit}
+button{cursor:pointer}
+svg{overflow:visible}
+
+/* ---------- Colors de les opcions (pas 3): pastels; el coral queda reservat al triat ---------- */
+:root{--o0:#C9D6FF;--o1:#FBE0A0;--o2:#BFE6D2;--o3:#DAD0FF;--o4:#E3DDCF;--o5:#EEEBE3;--a3-row:56px}
+
+/* ---------- Peces comunes de l'animació ---------- */
+.a3-s1,.a3-s2,.a3-s3,.a3-s4,.a3-s5,.a3-s6,.a3-s7{position:absolute;inset:0}
+.a3-caret{display:inline-block;width:6px;height:1em;border-radius:3px;background:var(--coral);flex:none}
+.a3-pick{display:inline-block;padding:0 20px 4px;border-radius:16px;background:var(--coral);color:#fff;font-weight:700;line-height:1.2}
+.a3-pick.a3-past{background:var(--coral-soft);color:var(--coral)}
+.a3-pill{display:inline-flex;align-items:center;height:48px;padding:0 24px;border-radius:999px;background:var(--blue);color:#fff;font-size:36px;font-weight:700;white-space:nowrap}
+.a3-sent{display:flex;align-items:center;gap:18px;height:112px;padding:0 40px;font-size:56px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+
+/* Bloc «Model de llenguatge»: blau ple amb una trama de pesos (blanc = positiu, blau fosc = negatiu) */
+.a3-model{background:var(--blue);color:#fff;border-radius:var(--radius);box-shadow:var(--shadow-lift)}
+.a3-model-title{font-family:var(--font-display);font-weight:700;letter-spacing:-.02em;line-height:1.05}
+.a3-weights{display:block;width:100%;height:auto}
+.a3-model-sub{font-size:36px;line-height:1.2;color:rgba(255,255,255,.92)}
+
+/* Files de probabilitat: paraula · barra · percentatge */
+.a3-list{position:relative}
+.a3-row{display:grid;grid-template-columns:var(--wc,200px) 1fr var(--pc,104px);column-gap:24px;align-items:center;height:var(--a3-row)}
+.a3-list .a3-row+.a3-row{margin-top:var(--gap,16px)}
+.a3-w{font-size:44px;font-weight:500;line-height:1;white-space:nowrap}
+.a3-p{font-size:40px;font-weight:700;line-height:1;text-align:right;white-space:nowrap}
+.a3-row .bar,.a3-trow .bar{height:var(--bh,44px)}
+.is-chosen>.a3-w{color:var(--coral);font-weight:700}
+.is-chosen>.a3-p{color:var(--coral)}
+
+/* ---------- Pas 1 ---------- */
+.a3-s1{display:flex;align-items:center;gap:40px}
+.a3-input{flex:none;width:688px;height:176px;display:flex;align-items:center;gap:14px;padding:0 40px;font-size:56px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+.a3-s1 .a3-arrow{flex:none}
+.a3-s1 .a3-model{flex:1;padding:40px 48px;display:flex;flex-direction:column;gap:24px}
+.a3-s1 .a3-model-title{font-size:64px}
+
+/* ---------- Pas 2 ---------- */
+.a3-s2{display:flex;align-items:center}
+.a3-input2{flex:none;width:352px;padding:28px 32px;font-size:48px;line-height:1.2;font-weight:500;letter-spacing:-.01em;text-wrap:balance}
+.a3-input2 .a3-caret{height:44px;margin-left:12px;vertical-align:-6px}
+.a3-s2 .a3-arrow{flex:none}
+.a3-model-s{flex:none;width:336px;padding:32px;display:flex;flex-direction:column;gap:20px}
+.a3-model-s .a3-model-title{font-size:48px;text-wrap:balance}
+.a3-s2 .a3-list{flex:none;width:960px;padding-left:40px;--wc:200px;--pc:104px}
+.a3-bracket{position:absolute;left:0;top:0;bottom:0;width:20px;border:4px solid rgba(21,23,28,.55);border-right:0;border-radius:16px 0 0 16px;transform-origin:center}
+
+/* ---------- Pas 3: banda del sorteig ---------- */
+.a3-s3 .a3-sent{position:absolute;left:0;top:0;width:1776px}
+.a3-slot{position:relative;display:inline-block}
+.a3-ring{position:absolute;inset:-6px -8px;border:4px dashed var(--coral);border-radius:20px;opacity:0}
+.a3-tag{font-size:36px;font-weight:700;color:var(--coral);margin-left:8px}
+.a3-needle{position:absolute;left:0;top:168px;width:0;height:176px}
+.a3-pin{position:absolute;top:0;height:56px;display:flex;align-items:center;padding:0 24px;border-radius:999px;background:var(--ink);color:#fff;font-size:40px;font-weight:600;white-space:nowrap}
+.a3-shaft{position:absolute;left:-6px;top:52px;width:12px;height:124px;background:var(--ink);clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%)}
+.a3-band{position:absolute;left:0;top:296px;width:1776px;height:144px;display:flex;border-radius:28px;overflow:hidden;box-shadow:var(--shadow)}
+.a3-seg{height:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:34px;font-size:44px;font-weight:700;box-shadow:inset -4px 0 0 #fff;white-space:nowrap}
+.a3-seg:last-child{box-shadow:none}
+.a3-seg.o0{background:var(--o0)}.a3-seg.o1{background:var(--o1)}.a3-seg.o2{background:var(--o2)}
+.a3-seg.o3{background:var(--o3)}.a3-seg.o4{background:var(--o4)}.a3-seg.o5{background:var(--o5)}
+.a3-seg.dim{opacity:.55}
+.a3-seg.is-chosen{background:var(--coral);color:#fff}
+.a3-names{position:absolute;left:0;top:456px;width:1776px;display:flex;font-size:40px;line-height:1.1}
+.a3-names span{display:flex;justify-content:center;white-space:nowrap}
+.a3-names .is-chosen{color:var(--coral);font-weight:700}
+.a3-ruler{position:absolute;left:0;top:524px;width:1776px;display:flex;align-items:center;gap:16px;font-size:32px;font-weight:600;color:var(--muted)}
+.a3-ruler i{flex:1;height:4px;border-radius:2px;background:var(--line-strong)}
+
+/* ---------- Pas 4 ---------- */
+.a3-sent4{position:absolute;left:0;top:0;width:1008px}
+.a3-guide{position:absolute;left:1056px;top:0;width:720px;height:112px;display:flex;align-items:center;font-size:36px;line-height:1.2;font-weight:600}
+.a3-head{position:absolute;left:0;top:144px;height:48px}
+.a3-list4{position:absolute;left:0;top:204px;width:1100px;--wc:140px;--pc:104px;--gap:12px}
+.a3-result{position:absolute;left:1148px;top:204px;width:628px;height:396px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.a3-add{font-size:40px;font-weight:600;color:var(--muted)}
+.a3-add-word{font-size:136px;color:var(--coral)}
+
+/* ---------- Pas 5 ---------- */
+.a3-s5{display:flex;flex-direction:column;gap:24px}
+.a3-pair{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.a3-round{padding:24px 28px;display:flex;flex-direction:column;gap:16px}
+.a3-round-head{display:flex;align-items:center;gap:20px;height:56px;font-size:40px;white-space:nowrap}
+.a3-ctx{font-weight:500}
+.a3-list5{--wc:224px;--pc:96px;--gap:12px}
+.a3-round-add{display:flex;align-items:center;gap:16px;height:58px;border-top:2px solid var(--line);padding-top:6px;font-size:40px;font-weight:600;white-space:nowrap}
+.a3-round-add b{color:var(--coral);font-weight:700}
+.a3-final{height:112px;display:flex;align-items:center;gap:16px;padding:0 40px;font-size:56px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+
+/* ---------- Pas 6: tres temperatures ---------- */
+.a3-s6{display:flex;flex-direction:column;gap:20px}
+.a3-tline{height:48px;display:flex;align-items:center;font-size:40px;font-weight:500}
+.a3-tgrid{display:grid;grid-template-columns:192px repeat(3,1fr);column-gap:24px}
+.a3-words{display:flex;flex-direction:column;gap:12px;padding-top:86px;font-size:40px;font-weight:500}
+.a3-words span{height:60px;display:flex;align-items:center;white-space:nowrap}
+.a3-temp{padding:20px 24px;--bh:44px}
+.a3-temp-head{height:52px;margin-bottom:12px;display:flex;align-items:center;font-family:var(--font-display);font-size:44px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.a3-trows{display:flex;flex-direction:column;gap:12px}
+.a3-trow{height:60px;display:grid;grid-template-columns:1fr 136px;column-gap:16px;align-items:center}
+.a3-trow.is-chosen>.a3-p{color:var(--coral)}
+
+/* ---------- Pas 7 ---------- */
+.a3-s7{display:flex;flex-direction:column;justify-content:center}
+.a3-strip{align-self:center;height:120px;display:flex;align-items:center;padding:0 48px;font-size:56px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+.a3-fork{display:block;width:1776px;height:88px}
+.a3-two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.a3-cont{padding:36px 40px;display:flex;flex-direction:column;gap:24px}
+.a3-cont-head{display:flex;align-items:center;gap:20px;font-size:40px;font-weight:700}
+.a3-badge{width:64px;height:64px;border-radius:999px;background:#fff;border:4px solid var(--blue);display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700}
+.a3-cont.b .a3-badge{border-color:var(--amber)}
+.a3-cont-text{font-size:56px;line-height:1.25;font-weight:700;letter-spacing:-.01em}
+.a3-cont-text .pre{color:var(--muted);font-weight:500}
+
+/* ---------- v3 · Profunditat ----------
+   Una sola llum, de dalt a l'esquerra. El bloc «Model» és una caixa (cara frontal, superior i lateral);
+   les paraules triades són tecles coral; les frases, safates enfonsades; les barres, blocs extruïts;
+   el sorteig, una regla amb gruix. El text queda sempre de cara (només es gira en Y, amb l'origen a la vora exterior). */
+#scene .a3-pick{--edge:#9C3118;box-shadow:var(--key);transform-origin:50% 100%}
+#scene .a3-pick.a3-past{--edge:#E8A88E}
+#scene .a3-ring{inset:-8px -10px -18px}
+#scene .a3-pill{--edge:#1E3C9E;box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 5px 0 var(--edge),0 7px 0 rgba(21,23,28,.12),0 12px 14px -8px rgba(21,23,28,.4)}
+#scene .a3-sent,#scene .a3-final{background:linear-gradient(180deg,#ECE7DB 0%,#F8F5EE 100%);border-color:rgba(21,23,28,.10);
+  box-shadow:inset 0 7px 14px rgba(21,23,28,.13),inset 0 -2px 0 rgba(255,255,255,.9),0 2px 0 rgba(255,255,255,.8)}
+#scene .a3-result{background:linear-gradient(180deg,#FFD9CE 0%,var(--coral-soft) 100%);
+  box-shadow:inset 0 8px 18px rgba(210,70,42,.22),inset 0 -2px 0 rgba(255,255,255,.7)}
+#scene .a3-add-word{display:inline-block;min-width:152px;padding:0 40px 10px;border-radius:30px;background:var(--coral);color:#fff;line-height:1.1;
+  --edge:#9C3118;box-shadow:var(--key);transform-origin:50% 100%}
+
+/* Bloc «Model de llenguatge»: caixa amb cara frontal, superior (clara) i lateral (fosca) */
+#scene .a3-model{position:relative;display:block;--d:36px;padding:0;background:none;box-shadow:none;border-radius:0;
+  margin:var(--d) var(--d) 0 0;filter:drop-shadow(14px 20px 16px rgba(21,23,28,.26))}
+#scene .a3-model-s{--d:24px}
+#scene .a3-front{position:relative;background:linear-gradient(180deg,#4B6EE3 0%,var(--blue) 50%,#2849BE 100%);color:#fff;border-radius:12px;
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.38),inset 0 -3px 0 rgba(0,0,0,.2)}
+#scene .a3-s1 .a3-front{padding:40px 48px;display:flex;flex-direction:column;gap:24px}
+#scene .a3-model-s .a3-front{padding:32px;display:flex;flex-direction:column;gap:20px}
+#scene .a3-top{position:absolute;left:0;top:calc(var(--d) * -1);width:calc(100% + var(--d));height:calc(var(--d) + 14px);
+  background:linear-gradient(90deg,#9DB2F7,#6F8DF0);
+  clip-path:polygon(var(--d) 0,100% 0,calc(100% - var(--d)) var(--d),calc(100% - var(--d)) calc(var(--d) + 14px),0 calc(var(--d) + 14px),0 var(--d))}
+#scene .a3-side{position:absolute;left:calc(100% - 14px);top:calc(var(--d) * -1);width:calc(var(--d) + 14px);height:calc(100% + var(--d));
+  background:linear-gradient(180deg,#2547B6,#15297A);
+  clip-path:polygon(0 var(--d),14px var(--d),calc(14px + var(--d)) 0,calc(14px + var(--d)) calc(100% - var(--d)),14px 100%,0 100%)}
+/* La trama de pesos són llums: panell enfonsat, cel·les positives que brillen, negatives apagades */
+#scene .a3-weights{box-sizing:border-box;padding:14px;border-radius:14px;background:rgba(6,16,64,.5);
+  box-shadow:inset 0 5px 12px rgba(0,0,0,.4),inset 0 -1px 0 rgba(255,255,255,.22),0 1px 0 rgba(255,255,255,.18)}
+#scene .a3-weights .wp{filter:drop-shadow(0 0 4px rgba(255,255,255,.8))}
+#scene .a3-s2 .a3-list{width:936px}
+
+/* Barres de probabilitat: blocs extruïts (cara superior il·luminada, cantell inferior) en una guia enfonsada */
+#scene .a3-row .bar,#scene .a3-trow .bar{overflow:visible;--edge:#1E3C9E}
+#scene .a3-row .bar.coral,#scene .a3-trow .bar.coral{--edge:#9C3118}
+#scene .a3-row .bar>i,#scene .a3-trow .bar>i{box-shadow:inset 0 3px 0 rgba(255,255,255,.42),inset 0 -3px 0 rgba(0,0,0,.10),0 7px 0 var(--edge),0 9px 0 rgba(21,23,28,.12),0 14px 14px -8px rgba(21,23,28,.34)}
+
+/* Pas 3: la banda del sorteig és una regla (marques cada 1 % i cada 10 %) amb cantell; el segment triat s'alça */
+#scene .a3-band{overflow:visible;background:#FBF9F4;
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.9),0 12px 0 #CDC6B6,0 14px 0 rgba(21,23,28,.10),0 34px 36px -16px rgba(21,23,28,.42)}
+#scene .a3-band::after{content:"";position:absolute;left:0;right:0;bottom:0;height:24px;border-radius:0 0 28px 28px;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(21,23,28,.4) 0 3px,transparent 3px 177.6px) left bottom/100% 24px no-repeat,
+             repeating-linear-gradient(90deg,rgba(21,23,28,.28) 0 2px,transparent 2px 17.76px) left bottom/100% 12px no-repeat}
+#scene .a3-seg{background-image:linear-gradient(180deg,rgba(255,255,255,.55) 0,rgba(255,255,255,0) 38%,rgba(21,23,28,.06) 100%)}
+#scene .a3-seg:first-child{border-radius:28px 0 0 28px}
+#scene .a3-seg:last-child{border-radius:0 28px 28px 0}
+#scene .a3-seg.is-chosen{position:relative;z-index:2;translate:0 -14px;box-shadow:inset -4px 0 0 #fff,0 14px 0 #9C3118,0 28px 24px -10px rgba(21,23,28,.4)}
+#scene .a3-pin{box-shadow:inset 0 2px 0 rgba(255,255,255,.22),0 5px 0 #000,0 14px 16px -8px rgba(21,23,28,.5)}
+#scene .a3-shaft{background:linear-gradient(90deg,#5A5E6B 0%,#1B1D24 55%,#000 100%)}
+
+/* Panells amb gruix; pas 6: tres plafons (els de fora giren una mica en Y, amb l'origen a la vora exterior) */
+#scene .a3-round,#scene .a3-cont,#scene .a3-temp,#scene .a3-strip{--edge:#D9D3C5;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 9px 0 var(--edge),0 11px 0 rgba(21,23,28,.08),0 30px 40px -20px rgba(21,23,28,.34)}
+#scene .a3-cont.a{--edge:#B3C3F2}#scene .a3-cont.b{--edge:#E6C57A}
+#scene .a3-tgrid{perspective:2000px}
+#scene .a3-temp[data-temperature="0.2"]{transform:rotateY(8deg);transform-origin:0 50%}
+#scene .a3-temp[data-temperature="1.5"]{transform:rotateY(-8deg);transform-origin:100% 50%}
+#scene .a3-temp[data-temperature="1"]{transform:translateZ(36px)}
+#scene .a3-badge{box-shadow:inset 0 2px 0 rgba(255,255,255,.8),0 4px 0 #B3C3F2,0 6px 8px -4px rgba(21,23,28,.3)}
+#scene .a3-cont.b .a3-badge{box-shadow:inset 0 2px 0 rgba(255,255,255,.8),0 4px 0 #E6C57A,0 6px 8px -4px rgba(21,23,28,.3)}
+
+/* Fons: un horitzó de barres de probabilitat en perspectiva (llistes de barres que s'allunyen), desenfocat, a dalt a la dreta */
+#fons{opacity:.9;filter:blur(2.2px) saturate(1.05);
+  -webkit-mask-image:radial-gradient(1500px 1000px at 104% -6%,#000 26%,rgba(0,0,0,.55) 46%,transparent 74%);
+          mask-image:radial-gradient(1500px 1000px at 104% -6%,#000 26%,rgba(0,0,0,.55) 46%,transparent 74%)}
+#fons .pla{position:absolute;left:560px;top:-420px;width:1800px;height:1500px;transform-style:preserve-3d;transform:rotateX(62deg) rotateZ(16deg)}
+#fons .pla i{position:absolute;height:34px;border-radius:12px;background:var(--c);transform:translateZ(var(--z,0px));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 10px 0 var(--e),0 26px 26px -10px rgba(21,23,28,.36)}
+
+/* ---------- v4 · Llum ----------
+   Brilla el que emet, amb el color del seu significat: blau el model i les dades, coral el triat. El text mai no brilla.
+   Les encesas ([data-encen], [data-reflex]) i el ::before del segment triat només corren en avançar (body[data-dir]). */
+@keyframes a3-enc{from{opacity:0}}
+
+/* Pas 1-2 · el bloc «Model»: les cel·les positives són LED i el bloc projecta un toll de llum blava sobre la taula */
+#scene .a3-weights .wp{filter:drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 0 7px rgba(176,204,255,.9))}
+#scene .a3-weights{box-shadow:inset 0 5px 12px rgba(0,0,0,.4),inset 0 -1px 0 rgba(255,255,255,.22),0 1px 0 rgba(255,255,255,.18),0 0 0 2px rgba(150,182,255,.26),0 0 16px 0 rgba(150,182,255,.28)}
+#scene .a3-pool{position:absolute;pointer-events:none;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(47,85,212,.55),rgba(47,85,212,.24) 56%,rgba(47,85,212,0))}
+#scene .a3-caret{box-shadow:0 0 8px 1px rgba(210,70,42,.65),0 0 22px 5px rgba(210,70,42,.28)}
+
+/* Barres: llum de sota blava; la guanyadora, coral, amb halo i un punt LED a la punta (--gk: intensitat, 1 per defecte) */
+#scene .a3-row .bar>i,#scene .a3-trow .bar>i{box-shadow:inset 0 3px 0 rgba(255,255,255,.42),inset 0 -3px 0 rgba(0,0,0,.10),0 7px 0 var(--edge),0 9px 0 rgba(21,23,28,.12),0 14px 14px -8px rgba(21,23,28,.34),0 20px 26px -10px rgba(47,85,212,.30)}
+#scene .a3-row .bar.coral>i,#scene .a3-trow .bar.coral>i{box-shadow:inset 0 3px 0 rgba(255,255,255,.42),inset 0 -3px 0 rgba(0,0,0,.10),0 7px 0 var(--edge),0 9px 0 rgba(21,23,28,.12),
+  0 0 16px 2px rgba(210,70,42,calc(.46 * var(--gk,1))),0 20px 28px -8px rgba(210,70,42,calc(.46 * var(--gk,1)))}
+#scene .a3-row .bar.coral>i::after,#scene .a3-trow .bar.coral>i::after,#scene .a3-s2 .a3-bracket+.a3-row .bar>i::after{content:"";position:absolute;right:9px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;
+  background:radial-gradient(circle,#fff 0 38%,var(--tip,#FFD6C9) 100%);
+  box-shadow:0 0 6px 2px rgba(255,255,255,.9),0 0 16px 6px rgba(var(--tipc,210,70,42),calc(.75 * var(--gk,1)))}
+#scene .a3-s2 .a3-bracket+.a3-row .bar>i{--tip:#CFDBFF;--tipc:47,85,212}
+#scene .a3-temp[data-temperature="0.2"]{--gk:1}
+#scene .a3-temp[data-temperature="1"]{--gk:.72}
+#scene .a3-temp[data-temperature="1.5"]{--gk:.52}
+
+/* Pas 3 · el segment triat s'encén en coral; l'agulla passa per sobre de la banda i acaba en un LED */
+#scene .a3-seg.is-chosen::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  box-shadow:0 0 20px 3px rgba(210,70,42,calc(.20 + .26 * var(--gk,1))),0 0 56px 10px rgba(210,70,42,calc(.08 + .12 * var(--gk,1))),0 40px 56px -16px rgba(210,70,42,calc(.24 + .20 * var(--gk,1)))}
+body:not([data-dir="back"]) #scene .a3-seg.is-chosen::before{animation:a3-enc .4s ease 820ms backwards}
+#scene .a3-needle{z-index:3}
+#scene .a3-shaft{height:84px}
+#scene .a3-led{position:absolute;left:-12px;top:124px;width:24px;height:24px;border-radius:50%;
+  background:radial-gradient(circle,#fff 0 32%,#FFC9B8 60%,#E5593A 100%);
+  box-shadow:0 0 8px 3px rgba(255,255,255,.95),0 0 20px 8px rgba(210,70,42,.70),0 0 46px 14px rgba(210,70,42,.28)}
+
+/* Passos 3-5 · les paraules triades (tecles coral) tenen halo; les ja triades, un halo tènue */
+#scene .a3-pick{box-shadow:var(--key),0 0 20px 2px rgba(210,70,42,.50),0 22px 30px -10px rgba(210,70,42,.42)}
+#scene .a3-pick.a3-past{box-shadow:var(--key),0 0 14px 1px rgba(210,70,42,.30),0 20px 28px -12px rgba(210,70,42,.30)}
+#scene .a3-add-word{box-shadow:var(--key),0 0 26px 6px rgba(210,70,42,.55),0 0 76px 20px rgba(210,70,42,.28)}
+
+/* Pas 7 · insígnies i targetes: A blau, B ambre */
+#scene .a3-badge{box-shadow:inset 0 2px 0 rgba(255,255,255,.8),0 4px 0 #B3C3F2,0 6px 8px -4px rgba(21,23,28,.3),var(--glow-sm-blue)}
+#scene .a3-cont.b .a3-badge{box-shadow:inset 0 2px 0 rgba(255,255,255,.8),0 4px 0 #E6C57A,0 6px 8px -4px rgba(21,23,28,.3),var(--glow-sm-amber)}
+#scene .a3-cont.a{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 9px 0 var(--edge),0 11px 0 rgba(21,23,28,.08),0 30px 40px -20px rgba(21,23,28,.34),0 26px 44px -14px rgba(47,85,212,.34)}
+#scene .a3-cont.b{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 9px 0 var(--edge),0 11px 0 rgba(21,23,28,.08),0 30px 40px -20px rgba(21,23,28,.34),0 26px 44px -14px rgba(201,133,18,.36)}
+
+#scene .a3-fork path.l{stroke:url(#a3-gl);stroke-opacity:1;filter:drop-shadow(0 0 5px rgba(47,85,212,.55))}
+#scene .a3-fork path.r{stroke:url(#a3-gr);stroke-opacity:1;filter:drop-shadow(0 0 5px rgba(201,133,18,.6))}
+
+/* Fons · algunes barres de l'horitzó tenen llum pròpia (suau: el fons és desenfocat) */
+#fons .pla i.lit{box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 10px 0 var(--e),0 0 34px 8px rgba(var(--g),.42),0 26px 26px -10px rgba(21,23,28,.30)}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"><script src="IA-S1-ritme.js"></script></head><body data-animation="prediccio"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Espai / Av Pàg / Re Pàg     Inici: reinicia     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "Predir el token següent",
+  "begin": "Aquest matí el cel està",
+  "model": "Model de llenguatge",
+  "weights": "milers de milions de pesos (paràmetres)",
+  "input": "El context entra al model.",
+  "calculate": "Calcula una probabilitat per a cada token possible.",
+  "choose": "En tria un, l'afegeix i torna a començar.",
+  "contextChanges": "El nou context canvia el repartiment de probabilitats.",
+  "repeat": "Cada tria amplia el context. El càlcul es repeteix.",
+  "temperatureCaption": "Temperatura baixa: gairebé sempre tria el més probable. Alta: arrisca més.",
+  "different": "Per això la mateixa pregunta pot donar respostes diferents.",
+  "candidates": [
+    "ennuvolat",
+    "clar",
+    "gris",
+    "serè",
+    "tapat",
+    "resta"
+  ],
+  "remainingTokens": [
+    "fred",
+    "blau",
+    "fosc"
+  ],
+  "probability": "Probabilitat",
+  "selected": "Token triat",
+  "draw": "Sorteig ponderat",
+  "drawPoint": "Punt del sorteig:",
+  "percent": " %",
+  "zeroPercent": "0 %",
+  "hundredPercent": "100 %",
+  "randomNote": "Sorteig aleatori real. «Resta» agrupa altres tokens possibles.",
+  "remainingNote": "Token dins «resta». Sorteig aleatori real, amb probabilitats il·lustratives.",
+  "guided": "Per seguir l'exemple, ens quedem amb «ennuvolat».",
+  "guidedNote": "Exemple guiat. Simplificat: paraules o grups de tokens, no talls reals.",
+  "wordsNote": "Simplificat: els exemples mostren paraules o grups de tokens.",
+  "rounds": [
+    "Volta 2",
+    "Volta 3",
+    "Volta 4"
+  ],
+  "nextWords": [
+    "i",
+    "però",
+    "amb",
+    "avui",
+    ".",
+    "resta"
+  ],
+  "thirdWords": [
+    "plourà",
+    "bufarà",
+    "refrescarà",
+    "resta"
+  ],
+  "fourthWords": [
+    "a la tarda.",
+    "al vespre.",
+    "demà.",
+    "resta"
+  ],
+  "guidedStart": "Aquest matí el cel està ennuvolat",
+  "afterSecond": "Aquest matí el cel està ennuvolat i",
+  "thirdContext": "… ennuvolat i",
+  "fourthContext": "… ennuvolat i plourà",
+  "add": "Afegim:",
+  "final": "Aquest matí el cel està ennuvolat i plourà a la tarda.",
+  "temperatureHeads": [
+    "Temperatura 0,2",
+    "Temperatura 1",
+    "Temperatura 1,5"
+  ],
+  "temperatureFormula": "La temperatura recalcula les probabilitats, que tornen a sumar 100 %.",
+  "temperatureNote": "Temperatura per token; després agrupem «resta». Arrodonim i sumen 100 %.",
+  "continuationA": "Continuació A",
+  "continuationB": "Continuació B",
+  "alternative": "Aquest matí el cel està clar, però refrescarà al vespre.",
+  "continuationNote": "Dues continuacions il·lustratives del mateix context inicial."
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current=0, totalSteps=1, drawStep, generation=0;
+const EASE='cubic-bezier(.2,.8,.2,1)';
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+function motion(el,frames,options={}){if(!el||reduced())return null;return el.animate(frames,{duration:600,easing:EASE,fill:'both',...options});}
+// Només es mou el que és nou: la zona de la frase de baix entra suau, l'escena no es belluga sencera.
+function show(html,caption='',note='',stamp=''){
+ $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+ if(caption)motion($('#caption'),[{opacity:.6,transform:'translateY(10px)'},{opacity:1,transform:'translateY(0)'}],{duration:520});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ motion($('#title'),[{opacity:.7,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],{duration:560});
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* ---------- Dades (no canvien respecte de la v1) ---------- */
+const a3Base=[38,22,15,12,8,5];
+const a3Second=[67,16,7,5,4,1];
+const a3Third=[56,22,14,8];
+const a3Fourth=[58,27,10,5];
+const a3Temperatures=[0.2,1,1.5];
+const a3Pct=(p,d=0)=>p.toFixed(d).replace('.',',')+TEXTOS.percent;
+function a3Uniform(){const value=new Uint32Array(1);crypto.getRandomValues(value);return value[0]/4294967296;}
+function a3Sample(){
+ const u=a3Uniform();let cumulative=0,bucket=a3Base.length-1;
+ for(let i=0;i<a3Base.length;i++){cumulative+=a3Base[i]/100;if(u<cumulative){bucket=i;break;}}
+ // The 5% remainder contains three illustrative tokens: 2%, 2%, 1%.
+ // A second draw samples that remainder, preserving the displayed 5% total.
+ let token=TEXTOS.candidates[bucket];
+ if(bucket===5){const r=a3Uniform();token=TEXTOS.remainingTokens[r<0.4?0:r<0.8?1:2];}
+ return {u,bucket,token};
+}
+function a3Temperature(t){
+ // Apply temperature to each candidate before aggregating the remainder.
+ const powered=[...a3Base.slice(0,5),2,2,1].map(p=>Math.pow(p/100,1/t));
+ const sum=powered.reduce((a,b)=>a+b,0);
+ const tokens=powered.map(p=>100*p/sum);
+ return [...tokens.slice(0,5),tokens.slice(5).reduce((a,b)=>a+b,0)];
+}
+function a3Rounded(values){
+ // Largest remainder rounding preserves the displayed sum of 100.0%.
+ const raw=values.map(p=>p*10),units=raw.map(Math.floor);
+ let left=1000-units.reduce((a,b)=>a+b,0);
+ const order=raw.map((p,i)=>({i,fraction:p-units[i]})).sort((a,b)=>b.fraction-a.fraction);
+ for(let j=0;j<left;j++)units[order[j].i]++;
+ return units.map(p=>p/10);
+}
+
+/* ---------- Peces de dibuix ---------- */
+let a3Anim=true, a3LastSample=null;
+const M=(el,frames,opts)=>a3Anim?motion(el,frames,opts):null;
+const rise=(el,delay=0,dur=520,dx=0,dy=20)=>M(el,[{opacity:0,transform:`translate(${dx}px,${dy}px)`},{opacity:1,transform:'translate(0,0)'}],{duration:dur,delay});
+const a3Arrow=(w,cls='a3-arrow')=>`<svg class="${cls}" viewBox="0 0 ${w} 48" width="${w}" height="48" aria-hidden="true"><path class="stroke" d="M6 24H${w-8}M${w-30} 6L${w-8} 24L${w-30} 42"/></svg>`;
+function a3Draw(path,delay=0,dur=450){
+ if(!path||!a3Anim)return;const L=path.getTotalLength();
+ M(path,[{strokeDasharray:`${L}`,strokeDashoffset:L},{strokeDasharray:`${L}`,strokeDashoffset:0}],{duration:dur,delay});
+}
+function a3Hash(x,y){const v=Math.sin(x*12.9898+y*78.233)*43758.5453;return v-Math.floor(v);}
+// Trama de «pesos» il·lustrativa: blanc = pes positiu, blau fosc = negatiu; la intensitat és la magnitud.
+function a3Weights(cols,rows,cell,gap,d=1400){
+ const w=cols*cell+(cols-1)*gap,h=rows*cell+(rows-1)*gap;let pos='',neg2='';
+ for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+  const m=a3Hash(c,r),neg=a3Hash(c+37,r+11)>.52;
+  const rect=`<rect class="a3-wc" data-c="${c}" x="${c*(cell+gap)}" y="${r*(cell+gap)}" width="${cell}" height="${cell}" rx="6" fill="${neg?'#0E1F66':'#fff'}" fill-opacity="${(neg?.3+.5*m:.28+.72*m).toFixed(2)}"/>`;
+  if(neg)neg2+=rect;else pos+=rect;
+ }
+ return `<svg class="a3-weights" data-encen data-llum="white" style="--d:${d}ms" viewBox="0 0 ${w} ${h}" aria-hidden="true"><g class="wn">${neg2}</g><g class="wp">${pos}</g></svg>`;
+}
+function a3Rows(labels,values,chosen=-1,decimals=0){
+ return labels.map((label,i)=>`<div class="a3-row${i===chosen?' is-chosen':''}" data-probability="${values[i]}"><span class="a3-w">${esc(label)}</span><div class="bar${i===chosen?' coral':''}"><i style="--w:${values[i]}%"></i></div><span class="a3-p">${esc(a3Pct(values[i],decimals))}</span></div>`).join('');
+}
+// Les files entren esglaonades i les barres creixen des de 0.
+function a3Grow(root,delay=0,step=70){
+ root.querySelectorAll('.a3-row').forEach((row,k)=>{
+  const p=Number(row.dataset.probability);
+  rise(row,delay+k*step,460,-16,0);
+  M(row.querySelector('.bar>i'),[{width:'0%'},{width:`${p}%`}],{duration:700,delay:delay+60+k*step});
+ });
+}
+function a3Count(el,from,to,decimals,duration,delay){
+ if(!a3Anim)return;const g=generation,t0=performance.now()+delay;
+ el.textContent=a3Pct(from,decimals);
+ const tick=now=>{
+  if(g!==generation)return;
+  const t=Math.max(0,Math.min(1,(now-t0)/duration)),e=1-Math.pow(1-t,3);
+  el.textContent=a3Pct(t<1?from+(to-from)*e:to,decimals);
+  if(t<1)requestAnimationFrame(tick);
+ };
+ requestAnimationFrame(tick);
+}
+function a3Pool(){
+ document.querySelectorAll('.a3-model').forEach(m=>{
+  const f=m.querySelector('.a3-front'),p=document.createElement('i');p.className='a3-pool';
+  p.style.cssText=`left:${m.offsetLeft-10}px;top:${m.offsetTop+f.offsetHeight-4}px;width:${f.offsetWidth+24}px;height:84px`;
+  m.parentNode.appendChild(p);
+  M(p,[{opacity:0},{opacity:1}],{duration:700,delay:m.closest('.a3-s1')?760:0});
+ });
+}
+const a3Scale=()=>$('#stage').getBoundingClientRect().width/1920;
+const a3Center=el=>{const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};};
+
+/* ---------- Passos ---------- */
+function a3Step1(){
+ show(`<div class="a3-s1"><div class="card a3-input"><span>${esc(TEXTOS.begin)}</span><i class="a3-caret"></i></div>${a3Arrow(112)}<div class="a3-model"><i class="a3-top"></i><i class="a3-side"></i><div class="a3-front" data-reflex style="--dr:700ms"><div class="a3-model-title">${esc(TEXTOS.model)}</div>${a3Weights(25,5,24,8,1450)}<div class="a3-model-sub">${esc(TEXTOS.weights)}</div></div></div></div>`,TEXTOS.input,'',TEXTOS.illustrative);
+ rise($('.a3-input'),0,560,-28,0);
+ a3Draw($('.a3-arrow path'),260,460);
+ rise($('.a3-model'),420,620,28,0);
+ document.querySelectorAll('.a3-wc').forEach(r=>M(r,[{opacity:0},{opacity:1}],{duration:380,delay:760+Number(r.dataset.c)*16}));
+ a3Pool();
+}
+function a3Step2(){
+ show(`<div class="a3-s2"><div class="card a3-input2"><span>${esc(TEXTOS.begin)}</span><i class="a3-caret"></i></div>${a3Arrow(64)}<div class="a3-model a3-model-s"><i class="a3-top"></i><i class="a3-side"></i><div class="a3-front"><div class="a3-model-title">${esc(TEXTOS.model)}</div>${a3Weights(9,2,22,8,200)}</div></div>${a3Arrow(64,'a3-arrow a3-arrow2')}<div class="a3-list"><i class="a3-bracket"></i>${a3Rows(TEXTOS.candidates,a3Base)}</div></div>`,TEXTOS.calculate,TEXTOS.wordsNote,TEXTOS.illustrative);
+ a3Draw($('.a3-arrow2 path'),0,360);
+ M($('.a3-bracket'),[{opacity:0,transform:'scaleY(.2)'},{opacity:1,transform:'scaleY(1)'}],{duration:480,delay:240});
+ a3Grow($('.a3-list'),380,70);
+ a3Pool();
+}
+function a3Step3(){
+ a3LastSample=a3Sample();
+ const {u,bucket,token}=a3LastSample;
+ const segs=a3Base.map((p,i)=>`<div class="a3-seg o${i} ${i===bucket?'is-chosen':'dim'}" style="width:${p}%;--gk:${Math.min(1,10/p).toFixed(2)}"><b>${esc(a3Pct(p))}</b></div>`).join('');
+ const names=a3Base.map((p,i)=>`<span class="${i===bucket?'is-chosen':''}" style="width:${p}%">${esc(TEXTOS.candidates[i])}</span>`).join('');
+ const x=Math.max(8,Math.min(1768,u*1776));
+ show(`<div class="a3-s3"><div class="card a3-sent"><span>${esc(TEXTOS.begin)}</span><span class="a3-slot"><i class="a3-ring"></i><span class="a3-pick" data-encen data-llum="coral" style="--d:1520ms">${esc(token)}</span></span><span class="a3-tag">${esc(TEXTOS.selected)}</span></div><div class="a3-needle" style="left:${x}px"><div class="a3-pin">${esc(TEXTOS.drawPoint)} ${esc(a3Pct(u*100,1))}</div><i class="a3-shaft"></i><i class="a3-led"></i></div><div class="a3-band">${segs}</div><div class="a3-names">${names}</div><div class="a3-ruler"><span>${esc(TEXTOS.zeroPercent)}</span><i></i><span>${esc(TEXTOS.hundredPercent)}</span></div></div>`,TEXTOS.choose,bucket===5?TEXTOS.remainingNote:TEXTOS.randomNote,TEXTOS.illustrative);
+ // La xapa del número no es pot sortir de l'escena si l'agulla cau prop d'una vora.
+ const pin=$('.a3-pin'),w=pin.offsetWidth;
+ pin.style.left=`${Math.max(-x+8,Math.min(1768-x-w,-w/2))}px`;
+ // 1) la banda i les paraules entren; 2) l'agulla cau amb un rebot suau sobre el punt del sorteig
+ rise($('.a3-band'),0,460,0,16);rise($('.a3-names'),90,460,0,16);rise($('.a3-ruler'),160,460,0,16);
+ M($('.a3-needle'),[
+  {opacity:0,transform:'translateY(-64px)',easing:'cubic-bezier(.5,0,.85,.55)'},
+  {opacity:1,transform:'translateY(0)',offset:.42,easing:'cubic-bezier(.2,.7,.4,1)'},
+  {opacity:1,transform:'translateY(-14px)',offset:.62,easing:'cubic-bezier(.5,0,.85,.55)'},
+  {opacity:1,transform:'translateY(0)',offset:.8,easing:'cubic-bezier(.2,.7,.4,1)'},
+  {opacity:1,transform:'translateY(-4px)',offset:.9,easing:'cubic-bezier(.5,0,.85,.55)'},
+  {opacity:1,transform:'translateY(0)'}
+ ],{duration:850,delay:380,easing:'linear'});
+ // 3) el segment triat es torna coral, els altres s'apaguen
+ const root=getComputedStyle(document.documentElement);
+ document.querySelectorAll('.a3-seg').forEach((seg,i)=>{
+  if(i===bucket)M(seg,[{backgroundColor:root.getPropertyValue('--o'+i).trim(),color:'#15171C'},{backgroundColor:root.getPropertyValue('--coral').trim(),color:'#FFFFFF'}],{duration:300,delay:820});
+  else M(seg,[{opacity:1},{opacity:.55}],{duration:300,delay:820});
+ });
+ M($('.a3-seg.is-chosen'),[{translate:'0 0'},{translate:'0 -14px'}],{duration:340,delay:820});
+ M($('.a3-names .is-chosen'),[{color:'#15171C',fontWeight:500},{color:root.getPropertyValue('--coral').trim(),fontWeight:700}],{duration:300,delay:820});
+ // 4) la paraula triada salta del segment a la frase
+ const pick=$('.a3-pick'),src=a3Center($('.a3-seg.is-chosen')),dst=a3Center(pick),s=a3Scale();
+ const dx=(src.x-dst.x)/s,dy=(src.y-dst.y)/s,frames=[],n=10;
+ for(let k=0;k<=n;k++){
+  const t=k/n,e=1-Math.pow(1-t,3);
+  frames.push({offset:t,opacity:Math.min(1,t/.15),transform:`translate(${dx*(1-e)}px,${dy*(1-e)-150*4*e*(1-e)}px) scale(${.7+.3*e+.1*Math.sin(Math.PI*e)})`});
+ }
+ M(pick,frames,{duration:560,delay:960,easing:'linear'});
+ M($('.a3-ring'),[{opacity:1},{opacity:1,offset:.7},{opacity:0}],{duration:560,delay:960,easing:'linear'});
+ M($('.a3-tag'),[{opacity:0,transform:'translateX(-12px)'},{opacity:1,transform:'translateX(0)'}],{duration:340,delay:1460});
+}
+function a3Step4(){
+ show(`<div class="a3-s4"><div class="card a3-sent a3-sent4"><span>${esc(TEXTOS.begin)}</span><span class="a3-pick a3-past">${esc(TEXTOS.candidates[0])}</span></div><div class="a3-guide">${esc(TEXTOS.guided)}</div><div class="a3-head"><span class="a3-pill">${esc(TEXTOS.rounds[0])}</span></div><div class="a3-list a3-list4">${a3Rows(TEXTOS.nextWords,a3Second,0)}</div><div class="card tint-coral a3-result"><div class="a3-add">${esc(TEXTOS.add)}</div><div class="big a3-add-word" data-encen data-llum="coral" style="--d:1700ms">${esc(TEXTOS.nextWords[0])}</div></div></div>`,TEXTOS.contextChanges,TEXTOS.guidedNote,TEXTOS.illustrative);
+ rise($('.a3-guide'),0,520,0,12);rise($('.a3-head'),60,460,-16,0);
+ a3Grow($('.a3-list4'),160,70);
+ rise($('.a3-result'),760,520,0,20);
+ M($('.a3-sent4 .a3-pick'),[{opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'},{opacity:1,transform:'none'}],{duration:620,delay:0});
+ M($('.a3-add-word'),[{opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'},{opacity:1,transform:'none'}],{duration:640,delay:1060});
+}
+function a3Step5(){
+ const parts=[TEXTOS.candidates[0],TEXTOS.nextWords[0],TEXTOS.thirdWords[0],TEXTOS.fourthWords[0]];
+ const chips=TEXTOS.begin+' '+parts.join(' ')===TEXTOS.final
+  ?`<span>${esc(TEXTOS.begin)}</span>${parts.map((p,k)=>`<span class="a3-pick a3-past" data-encen data-llum="coral" style="--d:${1000+k*120+560}ms">${esc(p)}</span>`).join('')}`
+  :`<span>${esc(TEXTOS.final)}</span>`;
+ const panel=(round,ctx,words,vals)=>`<div class="card a3-round"><div class="a3-round-head"><span class="a3-pill">${esc(round)}</span><span class="a3-ctx">${esc(ctx)}</span></div><div class="a3-list a3-list5">${a3Rows(words,vals,0)}</div><div class="a3-round-add"><span>${esc(TEXTOS.add)}</span><b>${esc(words[0])}</b></div></div>`;
+ show(`<div class="a3-s5"><div class="a3-pair">${panel(TEXTOS.rounds[1],TEXTOS.thirdContext,TEXTOS.thirdWords,a3Third)}${panel(TEXTOS.rounds[2],TEXTOS.fourthContext,TEXTOS.fourthWords,a3Fourth)}</div><div class="card a3-final">${chips}</div></div>`,TEXTOS.repeat,TEXTOS.guidedNote,TEXTOS.illustrative);
+ document.querySelectorAll('.a3-round').forEach((p,k)=>{rise(p,k*90,520,0,20);a3Grow(p.querySelector('.a3-list'),160+k*90,70);rise(p.querySelector('.a3-round-add'),620+k*90,420,0,10);});
+ rise($('.a3-final'),900,520,0,20);
+ document.querySelectorAll('.a3-final .a3-pick').forEach((c,k)=>M(c,[{opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'},{opacity:1,transform:'none'}],{duration:600,delay:1000+k*120}));
+}
+function a3Step6(){
+ const actual=a3Temperatures.map(a3Temperature),rounded=actual.map(a3Rounded);
+ const words=`<div class="a3-words">${TEXTOS.candidates.map(w=>`<span>${esc(w)}</span>`).join('')}</div>`;
+ const cards=rounded.map((vals,i)=>{
+  const win=vals.indexOf(Math.max(...vals));
+  return `<div class="card a3-temp" data-temperature="${a3Temperatures[i]}"><div class="a3-temp-head">${esc(TEXTOS.temperatureHeads[i])}</div><div class="a3-trows">${vals.map((v,j)=>`<div class="a3-trow${j===win?' is-chosen':''}" data-from="${a3Base[j]}" data-to="${v}"><div class="bar${j===win?' coral':''}"${j===win?` data-encen data-llum="coral" style="--d:${260+i*90+j*40+620}ms"`:''}><i style="--w:${v}%"></i></div><span class="a3-p">${esc(a3Pct(v,1))}</span></div>`).join('')}</div></div>`;
+ }).join('');
+ show(`<div class="a3-s6"><div class="a3-tline">${esc(TEXTOS.temperatureFormula)}</div><div class="a3-tgrid">${words}${cards}</div></div>`,TEXTOS.temperatureCaption,TEXTOS.temperatureNote,TEXTOS.illustrative);
+ document.querySelectorAll('.a3-temp').forEach((card,i)=>{
+  M(card,[{opacity:0,translate:'0 20px'},{opacity:1,translate:'0 0'}],{duration:520,delay:i*90});
+  card.querySelectorAll('.a3-trow').forEach((row,j)=>{
+   const from=Number(row.dataset.from),to=Number(row.dataset.to),d=260+i*90+j*40;
+   M(row.querySelector('.bar>i'),[{width:`${from}%`},{width:`${to}%`}],{duration:760,delay:d});
+   a3Count(row.querySelector('.a3-p'),from,to,1,760,d);
+  });
+ });
+}
+function a3Step7(){
+ const split=t=>t.startsWith(TEXTOS.begin)?`<span class="pre">${esc(TEXTOS.begin)}</span>${esc(t.slice(TEXTOS.begin.length))}`:esc(t);
+ const card=(cls,badge,label,text)=>`<div class="card tint-${cls==='a'?'blue':'amber'} a3-cont ${cls}"><div class="a3-cont-head"><span class="a3-badge" data-encen data-llum="${cls==='a'?'blue':'amber'}" style="--d:${cls==='a'?900:1000}ms">${badge}</span><span>${esc(label)}</span></div><div class="a3-cont-text">${split(text)}</div></div>`;
+ const fork=`<svg class="a3-fork" viewBox="0 0 1776 88" aria-hidden="true"><defs><linearGradient id="a3-gl" gradientUnits="userSpaceOnUse" x1="888" y1="0" x2="620" y2="0"><stop offset="0" stop-color="#15171C" stop-opacity=".55"/><stop offset="1" stop-color="#2F55D4"/></linearGradient><linearGradient id="a3-gr" gradientUnits="userSpaceOnUse" x1="888" y1="0" x2="1156" y2="0"><stop offset="0" stop-color="#15171C" stop-opacity=".55"/><stop offset="1" stop-color="#C98512"/></linearGradient></defs><path class="stroke l" d="M888 0V22Q888 44 866 44H460Q438 44 438 66V78M420 62L438 80L456 62"/><path class="stroke r" d="M888 0V22Q888 44 910 44H1316Q1338 44 1338 66V78M1320 62L1338 80L1356 62"/></svg>`;
+ show(`<div class="a3-s7"><div class="card a3-strip">${esc(TEXTOS.begin)}</div>${fork}<div class="a3-two">${card('a','A',TEXTOS.continuationA,TEXTOS.final)}${card('b','B',TEXTOS.continuationB,TEXTOS.alternative)}</div></div>`,TEXTOS.different,TEXTOS.continuationNote,TEXTOS.illustrative);
+ rise($('.a3-strip'),0,480,0,16);
+ document.querySelectorAll('.a3-fork path').forEach((p,k)=>a3Draw(p,260+k*60,460));
+ document.querySelectorAll('.a3-cont').forEach((c,k)=>M(c,[{opacity:0,translate:'0 24px'},{opacity:1,translate:'0 0'}],{duration:520,delay:520+k*90}));
+}
+function renderStep(step,prev){
+ // Al retrocedir (o amb moviment reduït) es pinta l'estat final sense animar.
+ a3Anim=!reduced()&&(prev===undefined||prev<=step);
+ [a3Step1,a3Step2,a3Step3,a3Step4,a3Step5,a3Step6,a3Step7][step]();
+}
+/* Fons temàtic (el crida IA-S1-comu.js): un horitzó de llistes de barres de probabilitat que s'allunyen, sobre un pla inclinat.
+   Cada llista és un repartiment (la barra més llarga, en corall: el més probable); algunes barres s'alcen (translateZ). Sense text. */
+window.fonsIA=function(capa){
+ const C=[['#C9D6FF','#9FB4F1','47,85,212'],['#FBE0A0','#DDB963','201,133,18'],['#BFE6D2','#8DCBAD','22,128,94'],['#DAD0FF','#B7A4EE','106,79,214']];
+ const HOT=['#F9C9B8','#E8A88E','210,70,42'];
+ const DIST=[[38,22,15,12,8,5],[67,16,7,5,4,1],[56,22,14,8],[58,27,10,5],[93,6,1],[29,20,16,14,11,10]];
+ let h='<div class="pla">';
+ for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+  const d=DIST[(r*4+c*3+r)%DIST.length],col=C[(r+c)%4];
+  d.forEach((p,k)=>{
+   const hot=k===0,z=((r*5+c*3+k)%7===0)?70:(((r+c+k)%5===0)?28:0);
+   h+=`<i${(z>0&&!hot)||(hot&&(r+c)%2===0)?' class="lit"':''} style="left:${c*430}px;top:${r*330+k*46}px;width:${40+Math.round(p*6)}px;--c:${hot?HOT[0]:col[0]};--e:${hot?HOT[1]:col[1]};--g:${hot?HOT[2]:col[2]};--z:${z}px"></i>`;
+  });
+ }
+ capa.innerHTML=h+'</div>';
+};
+boot(7,renderStep);
+window.a3={base:a3Base,temperature:a3Temperature,rounded:a3Rounded,sample:a3Sample,get lastSample(){return a3LastSample}};
+</script><script src="IA-S1-comu.js"></script></body></html>

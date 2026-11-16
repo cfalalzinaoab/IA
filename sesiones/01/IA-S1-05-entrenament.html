@@ -1,0 +1,629 @@
+<!doctype html>
+<!--
+
+A5 · Entrenament i inferència. Guió docent proporcionat per l’encàrrec.
+Sense xifres ni dates de cap model comercial. «Durant mesos», «milers» i
+«milions de milions de tokens» són ordres de magnitud, no una mesura concreta.
+El xip de la GPU és una quadrícula de cel·les que s’encenen per onades per
+representar el paral·lelisme: és il·lustratiu i no és l’arquitectura real d’una GPU.
+Les posicions i el moviment de les rodetes són il·lustratius; no expressen valors
+de pesos reals.
+Simplificacions visibles: exemple d’una sola paraula i un sol error; els pesos
+s’actualitzen conjuntament durant l’entrenament. L’ajust per conversar agrupa
+diverses tècniques. La data de tall és de les dades d’entrenament i no limita el
+context ni les eines que puguin aportar informació actualitzada. La inferència
+habitual no actualitza els pesos; la memòria de l’aplicació és context afegit.
+Les condicions d’ús de converses per a entrenament depenen de cada compte i servei.
+Referència conceptual: Vaswani et al., Attention Is All You Need (2017),
+https://arxiv.org/abs/1706.03762 (model, entrenament i descodificació autoregressiva).
+
+Material docent local, versió 2 (disseny net, 13-10-2026). Totes les dades il·lustratives es marquen en pantalla.
+v3 (13-10-2026): profunditat. Rodetes i candau amb relleu, tubs com a fletxes, xip de la GPU en perspectiva, pista i barrera, interruptors físics; fons de placa de circuit (window.fonsIA).
+v4 (13-10-2026): llum. Punta LED en els punters de les rodetes, botó de sincronitzar i candau amb halo i encesa en arribar, bucle i conducte coral com a neó, graella de la GPU com a LED amb resplendor (un sol filtre) i franja de llum, barrera de data de tall amb baliza coral, targeta «Ús» amb halo blau, «Text desat» amb halo blau, interruptors encesos amb halo coral; al fons, pistes i LED de la placa amb llum pròpia.
+Ritme (13-10-2026): carrega IA-S1-ritme.js al <head>; tot el moviment va més a poc a poc, pel mateix factor (LENT, a IA-S1-ritme.js).
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Entrenament i inferència</title><style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit;color:var(--ink)}button{cursor:pointer}
+svg{overflow:visible}
+
+/* ---------- v3 · Profunditat: peces comunes d'A5 (una sola llum, de dalt a l'esquerra) ---------- */
+/* Rodeta: un manec físic. Anell enfonsat amb marques, cos amb brillantor i cantell, marca de color. El que gira és .ptr. */
+.dial{--d:120px;--c:var(--blue);--cs:#E4EAFF;--ck:#B5C5F6;--ce:#7F98EA;--dc:47,85,212;
+  position:relative;display:block;flex:none;width:var(--d);height:var(--d);border-radius:50%;
+  background:radial-gradient(circle,#DAD5C7 0 58%,#EDE9DE 59% 100%);
+  box-shadow:inset 0 calc(var(--d) * .03) calc(var(--d) * .07) rgba(21,23,28,.30),inset 0 calc(var(--d) * -.02) 0 rgba(255,255,255,.75),0 1px 0 rgba(255,255,255,.7)}
+.dial.green{--c:var(--green);--cs:#DCF2E8;--ck:#A5D8BF;--ce:#6FB896;--dc:22,128,94}
+.dial.coral{--c:var(--coral);--cs:#FFE5DC;--ck:#F4B7A3;--ce:#DE8D74;--dc:210,70,42}
+.dial .tk{position:absolute;left:50%;top:50%;width:calc(var(--d) * .05);height:calc(var(--d) * .05);margin:calc(var(--d) * -.025);border-radius:50%;
+  background:rgba(21,23,28,.42);transform:rotate(var(--a)) translateY(calc(var(--d) * -.43))}
+.dial .kn{position:absolute;inset:17%;border-radius:50%;
+  background:radial-gradient(circle at 34% 26%,#fff 0,var(--cs) 36%,var(--ck) 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.85),inset 0 -3px 5px rgba(21,23,28,.12),
+    0 calc(var(--d) * .055) 0 var(--ce),0 calc(var(--d) * .075) 0 rgba(21,23,28,.14),0 calc(var(--d) * .17) calc(var(--d) * .15) calc(var(--d) * -.07) rgba(21,23,28,.5)}
+.dial .ptr{position:absolute;inset:0;display:block}
+.dial .ptr b{position:absolute;left:50%;top:9%;width:calc(var(--d) * .075);height:32%;margin-left:calc(var(--d) * -.0375);border-radius:99px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--c) 72%,#fff),var(--c) 55%);box-shadow:0 1px 1px rgba(21,23,28,.3)}
+/* v4 · Llum: la punta del puntero es un LED (centro blanco, color del mando y halo); gira con .ptr */
+.dial .ptr b::after{content:"";position:absolute;left:50%;top:0;width:calc(var(--d) * .15);height:calc(var(--d) * .15);margin:calc(var(--d) * -.075) 0 0 calc(var(--d) * -.075);border-radius:50%;
+  background:radial-gradient(circle at 50% 46%,#fff 0 20%,color-mix(in srgb,var(--c) 80%,#fff) 48%,var(--c) 100%);
+  box-shadow:0 0 calc(var(--d) * .12) calc(var(--d) * .03) rgba(var(--dc),.95),0 0 calc(var(--d) * .34) calc(var(--d) * .07) rgba(var(--dc),.46)}
+.dial .kn u{position:absolute;left:50%;top:50%;width:19%;height:19%;margin:-9.5%;border-radius:50%;display:block;
+  background:radial-gradient(circle at 34% 28%,#fff,var(--c) 62%);box-shadow:0 1px 2px rgba(21,23,28,.4)}
+/* Cartutx de pesos: bandeja enfonsada amb les rodetes, i amb candau (fixos) o amb el botó d'ajust */
+.wcap{display:flex;align-items:center;gap:var(--g,20px);padding:var(--p,18px 28px);border-radius:999px;
+  background:linear-gradient(180deg,#D8D2C4,#E8E4D9);
+  box-shadow:inset 0 5px 12px rgba(21,23,28,.22),inset 0 -2px 0 rgba(255,255,255,.8),0 1px 0 rgba(255,255,255,.7)}
+.wcap.locked{background:linear-gradient(180deg,#B7DDCA,#D2ECDF)}
+.wcap .sep{width:6px;height:56px;border-radius:3px;background:rgba(21,23,28,.15);flex:none;
+  box-shadow:inset 0 2px 2px rgba(21,23,28,.25),0 1px 0 rgba(255,255,255,.7)}
+.lock{width:var(--lw,64px);height:calc(var(--lw,64px) * 1.125);flex:none;display:block;filter:drop-shadow(0 5px 3px rgba(21,23,28,.38)) drop-shadow(0 0 4px rgba(255,255,255,.95)) drop-shadow(0 0 12px rgba(40,205,140,.80))}
+.lw,.dw{display:block;flex:none}
+.btn3d{display:grid;place-items:center;flex:none;width:var(--lw,64px);height:var(--lw,64px);border-radius:50%;
+  background:radial-gradient(circle at 34% 26%,#fff,#E4EAFF 42%,#B5C5F6);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.85),inset 0 0 14px rgba(255,255,255,.7),0 5px 0 #7F98EA,0 7px 0 rgba(21,23,28,.12),0 14px 14px -6px rgba(21,23,28,.42),var(--glow-sm-blue)}
+.sync{width:64%;height:64%;display:block;fill:none;stroke:var(--blue);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2.5px rgba(47,85,212,.55))}
+.ico{display:block;flex:none;fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 4px 2px rgba(21,23,28,.3))}
+/* Tubs i fletxes: ombra apilada, vora fosca, cos i brillantor; cap cònic */
+.arr{flex:none;display:block}
+.tb path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.cone{stroke-linejoin:round;stroke-width:2.5px;filter:drop-shadow(0 4px 3px rgba(21,23,28,.42))}
+.cone.neon{filter:drop-shadow(0 4px 3px rgba(21,23,28,.30)) drop-shadow(0 0 7px rgba(226,84,52,.78))}
+.tb .gl{opacity:.95}
+.t{font-family:var(--font-display);font-size:44px;font-weight:700;line-height:1.1;letter-spacing:-.005em}
+.lbl{font-size:40px;font-weight:700;line-height:1.1}
+.bubble,.piece{box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 #D3CDBF,0 7px 0 rgba(21,23,28,.08),0 16px 18px -10px rgba(21,23,28,.35)}
+
+#scene .col,#scene .a2 .scale,#scene .f5 .mdl,#scene .f6 .ctx,#scene .a7 .sws{box-shadow:var(--shadow-lift)}
+/* v4 · Llum: luz de debajo (el color del significado sobre la mesa) en las tarjetas que importan */
+#scene .col.train{box-shadow:var(--shadow-lift),0 34px 54px -24px rgba(47,85,212,.42)}
+#scene .col.infer{box-shadow:var(--shadow-lift),0 34px 54px -24px rgba(22,128,94,.42)}
+#scene .f5 .mdl{box-shadow:var(--shadow-lift),0 34px 54px -22px rgba(22,128,94,.44)}
+#scene .f6 .mdl{box-shadow:var(--hi),0 1px 2px rgba(21,23,28,.08),0 12px 24px -12px rgba(21,23,28,.22),0 30px 48px -22px rgba(22,128,94,.40)}
+/* el reflejo sobre el modelo se mezcla en «overlay»: aclara la tarjeta pero deja el texto oscuro como está */
+.f5 .mdl[data-reflex]::after{mix-blend-mode:overlay}
+#scene .f5 .ans{box-shadow:var(--hi),0 1px 2px rgba(21,23,28,.08),0 12px 24px -12px rgba(21,23,28,.22),0 26px 42px -22px rgba(47,85,212,.34)}
+
+/* ---------- Pas 1: dues targetes com un llibre obert ---------- */
+.cols{display:grid;grid-template-columns:864px 864px;gap:48px;height:612px}
+.col{display:flex;flex-direction:column;align-items:center;text-align:center;padding:44px 40px 40px}
+.col.train{transform:perspective(2000px) rotateY(6deg);transform-origin:0 50%}
+.col.infer{transform:perspective(2000px) rotateY(-6deg);transform-origin:100% 50%}
+.col .hd{font-family:var(--font-display);font-size:56px;font-weight:700;line-height:1.1;letter-spacing:-.01em}
+.col .sub{font-size:40px;color:var(--muted);margin-top:6px;line-height:1.15}
+.col .model{width:100%;margin-top:32px;padding:28px 24px 32px;display:flex;flex-direction:column;align-items:center;gap:24px}
+.col .desc{margin-top:auto;font-size:48px;font-weight:700;line-height:1.1}
+.col .dial{--d:124px}.col .wcap{--lw:76px}
+
+/* ---------- Pas 2 ---------- */
+.a2{position:relative;width:1776px;height:612px}
+.a2 .top{position:absolute;left:0;top:32px;width:1776px;height:88px;display:flex;justify-content:center;align-items:center;gap:28px;
+  font-family:var(--font-display);font-size:64px;font-weight:700;letter-spacing:-.01em}
+.a2 .slot{display:block;width:268px;height:72px;border-radius:18px;border:4px dashed var(--line-strong);
+  background:repeating-linear-gradient(135deg,rgba(21,23,28,.07) 0 12px,rgba(21,23,28,.02) 12px 24px);
+  box-shadow:inset 0 6px 12px rgba(21,23,28,.20),inset 0 -2px 0 rgba(255,255,255,.7)}
+.a2 .row{position:absolute;left:0;top:140px;width:1776px;height:248px;display:grid;grid-template-columns:1fr 112px 1fr 112px 1fr;align-items:center}
+.a2 .cyc{height:248px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+.a2 .cyc .k{font-size:40px;line-height:1.1;color:var(--muted);font-weight:600}
+.a2 .word{font-family:var(--font-display);font-size:68px;font-weight:700;line-height:1.1;padding:10px 44px;border-radius:18px;--edge:#D3CDBF;box-shadow:var(--key)}
+.a2 .word.pred{background:#EFECE4;border:4px dashed rgba(95,90,80,.6);--edge:#BDB7A8}
+.a2 .word.real{background:var(--green-soft);border:4px solid var(--green);--edge:#6FB896;box-shadow:var(--key),0 18px 30px -8px rgba(22,128,94,.38),0 0 14px 2px rgba(22,128,94,.50),0 0 38px 6px rgba(22,128,94,.22)}
+#scene .a2 .c-err{box-shadow:var(--hi),0 1px 2px rgba(21,23,28,.08),0 12px 24px -12px rgba(21,23,28,.22),0 0 22px 2px rgba(210,70,42,.30),0 0 60px 8px rgba(210,70,42,.15)}
+.a2 .dials{display:flex;gap:16px}.a2 .dials .dial{--d:96px}
+.a2 .loop{position:absolute;left:0;top:388px;width:1776px;height:140px}
+.a2 .scale{position:absolute;left:408px;top:416px;width:960px;height:152px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;border-radius:28px}
+.a2 .scale span{font-size:36px;line-height:1.15;color:var(--muted);font-weight:600}
+.a2 .scale strong{font-family:var(--font-display);font-size:64px;line-height:1.1;font-weight:700;letter-spacing:-.015em}
+
+/* ---------- Pas 3: la GPU, un xip en relleu una mica inclinat ---------- */
+.a3{width:1776px;height:612px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px}
+.a3 .gpuh{display:flex;align-items:center;justify-content:center;gap:36px}
+.a3 .gpu{display:inline-flex;align-items:center;justify-content:center;height:112px;padding:0 36px;border-radius:24px;background:var(--blue);color:#fff;
+  font-family:var(--font-display);font-size:88px;font-weight:700;letter-spacing:.01em;line-height:1;--edge:#1B3796;
+  box-shadow:var(--key),inset 0 0 26px rgba(255,255,255,.20),var(--glow-blue)}
+.a3 .x{font-family:var(--font-display);font-size:88px;font-weight:700;color:var(--coral);line-height:1}
+.a3 .par{font-family:var(--font-display);font-size:68px;font-weight:700;letter-spacing:-.015em;line-height:1.1}
+.a3 .chip3{width:1776px;height:448px;display:block;transform:perspective(1700px) rotateX(20deg);transform-origin:50% 100%;
+  filter:drop-shadow(0 26px 22px rgba(21,23,28,.30)) drop-shadow(0 14px 28px rgba(47,85,212,.30))}
+.a3 .die-sh{filter:drop-shadow(0 16px 10px rgba(21,23,28,.30))}
+.a3 .dim{filter:drop-shadow(0 2.5px 0 rgba(27,55,150,.38))}
+/* v4 · LED: un solo filtro (resplandor) sobre toda la rejilla encendida */
+.a3 .leds{filter:drop-shadow(0 0 3px rgba(150,185,255,.95)) drop-shadow(0 0 11px rgba(47,85,212,.70))}
+.a3 .dieglow{filter:blur(17px)}
+.a3 .dim rect{fill:var(--blue);fill-opacity:.16}
+.a3 .band{fill:url(#gLed);opacity:.95}
+
+/* ---------- Pas 4: una pista amb gruix i una barrera ---------- */
+.a4{position:relative;width:1776px;height:612px}
+.a4 .tl{position:absolute;left:0;top:0;width:1776px;height:612px}
+.a4 .cutwrap{position:absolute;left:932px;width:800px;top:40px;display:flex;justify-content:center}
+.a4 .cutpill{display:inline-flex;align-items:center;gap:16px;padding:12px 30px;border-radius:999px;font-size:44px;font-weight:700;line-height:1.1;letter-spacing:-.005em;
+  background:var(--coral-soft);border:4px solid var(--coral);white-space:nowrap;--edge:#E39A82;box-shadow:var(--key),0 18px 30px -8px rgba(210,70,42,.34)}
+.a4 .ph{position:absolute;top:176px;height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+.a4 .ph .t{font-size:50px}.a4 .ph .d{font-size:40px;line-height:1.15;color:var(--muted)}
+.a4 .p1{left:0;width:480px}.a4 .p2{left:568px;width:720px}.a4 .p3{left:1376px;width:400px}
+#scene .a4 .p3{box-shadow:var(--shadow),var(--glow-blue),inset 0 0 26px rgba(47,85,212,.07)}
+
+/* ---------- Passos 5 i 6 ---------- */
+.flow{display:grid;align-items:center;height:612px}
+.f5{grid-template-columns:500px 80px 616px 80px 500px}
+.f6{grid-template-columns:440px 72px 648px 72px 544px}
+.node{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:24px}
+.bubble{background:#fff;border:2px solid var(--line);border-radius:18px;padding:20px 24px;font-size:40px;line-height:1.25;width:100%}
+.f5 .t{font-size:48px}
+.f5 .ctx,.f5 .ans{min-height:360px;gap:28px}.f5 .bubble{font-size:42px}
+.f5 .mdl{min-height:480px;gap:32px;padding:28px 24px}
+.f5 .mdl .dial{--d:92px}.f5 .mdl .wcap{--g:14px;--p:16px 24px;--lw:60px}
+.fixed{font-size:44px;font-weight:700;line-height:1.1}
+.f6 .mem{min-height:420px;align-items:flex-start;text-align:left;gap:18px}
+.f6 .mem .t{line-height:1.15}
+.f6 .arr.a1{align-self:start;margin-top:var(--a1,200px)}
+.f6 .mem p{margin:0;font-size:40px;line-height:1.25}
+.f6 .ctx{gap:16px;padding:24px 28px}
+.piece{border-radius:16px;padding:14px 22px 16px;text-align:left;font-size:40px;line-height:1.25;width:100%}
+.piece .pl{display:block;font-size:34px;font-weight:700;color:var(--muted);line-height:1.15;margin-bottom:2px}
+.piece.saved{background:var(--blue-soft);border:2px solid color-mix(in srgb,var(--blue) 35%,transparent);border-left:10px solid var(--blue);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 5px 0 #A9BCF5,0 7px 0 rgba(21,23,28,.08),0 0 10px 1px rgba(47,85,212,.42),0 18px 22px -10px rgba(47,85,212,.40)}
+.piece.ask{background:#fff;border:2px solid var(--line-strong)}
+.f6 .mdl{min-height:360px;gap:24px}
+.f6 .mdl .t{font-size:42px}
+.f6 .mdl .dial{--d:76px}.f6 .mdl .wcap{--g:12px;--p:14px 20px}
+
+/* ---------- Pas 7: interruptors físics i un conducte amb vàlvula ---------- */
+.a7{position:relative;width:1776px;height:612px}
+.a7 .gate{position:absolute;left:436px;top:0;width:784px;height:612px}
+.a7 .L{position:absolute;left:0;top:346px;width:420px;height:200px;display:flex;align-items:center;justify-content:center;text-align:center}
+.a7 .R{position:absolute;left:1236px;top:336px;width:540px;height:220px;display:flex;align-items:center;justify-content:center;text-align:center}
+.a7 .sws{position:absolute;left:338px;top:44px;width:980px;height:262px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px}
+.a7 .sws .cond{font-family:var(--font-display);font-size:42px;font-weight:700;line-height:1.1;letter-spacing:-.005em;white-space:nowrap}
+.a7 .swrow{display:flex;align-items:flex-end;justify-content:center;gap:112px}
+.a7 .swg{display:flex;flex-direction:column;align-items:center;gap:12px}
+.a7 .swl{font-family:var(--font-display);font-size:48px;font-weight:700;line-height:1.1}
+.sw{position:relative;display:block;width:152px;height:80px;border-radius:40px;
+  background-color:var(--coral);background-image:linear-gradient(180deg,rgba(0,0,0,.20),rgba(255,255,255,.14));
+  box-shadow:inset 0 6px 10px rgba(0,0,0,.30),inset 0 -2px 0 rgba(255,255,255,.35),0 2px 0 rgba(255,255,255,.75),0 8px 12px -8px rgba(21,23,28,.35)}
+.sw .gl{position:absolute;inset:0;border-radius:40px;box-shadow:0 0 14px 2px rgba(210,70,42,.55),0 0 34px 5px rgba(210,70,42,.22),0 18px 28px -8px rgba(210,70,42,.50);pointer-events:none}
+.sw .kn{position:absolute;left:8px;top:6px;width:64px;height:64px;border-radius:50%;
+  background:radial-gradient(circle at 34% 26%,#fff,#F3EFE5 52%,#CDC6B5);
+  box-shadow:inset 0 2px 0 #fff,0 5px 0 #A9A290,0 7px 0 rgba(21,23,28,.14),0 15px 12px -6px rgba(21,23,28,.5);
+  transform:translateX(72px);display:flex;align-items:center;justify-content:center}
+.sw .ck{width:32px;height:32px;fill:none;stroke:var(--coral);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- Fons: una placa de circuit en perspectiva, a dalt a la dreta, desenfocada ---------- */
+#fons{opacity:.7;filter:blur(1.6px) saturate(1.1);
+  -webkit-mask-image:radial-gradient(1400px 950px at 106% -8%,#000 22%,rgba(0,0,0,.45) 44%,transparent 72%);
+          mask-image:radial-gradient(1400px 950px at 106% -8%,#000 22%,rgba(0,0,0,.45) 44%,transparent 72%)}
+#fons .pcb{position:absolute;left:780px;top:-270px;width:1600px;height:1100px;transform-style:preserve-3d;transform:rotateX(58deg) rotateZ(-26deg)}
+#fons .pcb svg{position:absolute;left:0;top:0;width:1600px;height:1100px}
+#fons .ch{position:absolute;border-radius:14px;transform:translateZ(var(--z,20px));
+  background:radial-gradient(circle at 16% 18%,rgba(255,255,255,.85) 0 6px,transparent 7px),linear-gradient(135deg,#9DAACB,#7280A5 55%,#5F6D93);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.35),0 12px 0 var(--e,#4F5B7B),0 36px 30px -12px rgba(21,23,28,.5)}
+/* v4 · Llum: el LED de encendido de algunos chips (bokeh verde, sin filtros) */
+#fons .ch.on{background:radial-gradient(circle at 16% 18%,#fff 0 5px,rgba(120,255,190,.95) 6px,rgba(90,235,165,.40) 17px,rgba(90,235,165,0) 40px),
+  linear-gradient(135deg,#9DAACB,#7280A5 55%,#5F6D93)}
+#fons .ch::before,#fons .ch::after{content:"";position:absolute}
+#fons .ch::before{inset:-14px 16px;
+  background:repeating-linear-gradient(90deg,#DDE1EA 0 9px,transparent 9px 21px) top/100% 14px no-repeat,repeating-linear-gradient(90deg,#DDE1EA 0 9px,transparent 9px 21px) bottom/100% 14px no-repeat}
+#fons .ch::after{inset:16px -14px;
+  background:repeating-linear-gradient(0deg,#DDE1EA 0 9px,transparent 9px 21px) left/14px 100% no-repeat,repeating-linear-gradient(0deg,#DDE1EA 0 9px,transparent 9px 21px) right/14px 100% no-repeat}
+#fons .cap{position:absolute;border-radius:8px;transform:translateZ(var(--z,12px));
+  background:linear-gradient(135deg,#F3D58A,#D9A93C);box-shadow:inset 0 2px 0 rgba(255,255,255,.5),0 8px 0 #A97A18,0 22px 18px -10px rgba(21,23,28,.45)}
+.cone,.a7 .dot{transform-box:fill-box;transform-origin:center}
+.a7 .gate .bar{transform-box:fill-box;transform-origin:center}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"><script src="IA-S1-ritme.js"></script></head><body data-animation="entrenament"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Espai / Av Pàg / Re Pàg     Inici: reinicia     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "Entrenament i inferència",
+  "training": "Entrenament",
+  "trainingTime": "abans, durant mesos",
+  "inference": "Ús o inferència",
+  "inferenceTime": "ara, a cada pregunta",
+  "trainingSub": "Ajustar els pesos",
+  "inferenceSub": "Aplicar els pesos",
+  "model": "Model de llenguatge",
+  "weights": "Pesos",
+  "prediction": "Predicció",
+  "realWord": "Paraula real",
+  "input": "El cel és",
+  "hidden": "paraula tapada",
+  "predictedWord": "gris",
+  "targetWord": "blau",
+  "error": "Error",
+  "scale": "milions de milions de tokens",
+  "scaleStages": [
+    "milers de tokens",
+    "milions de tokens",
+    "milers de milions de tokens",
+    "milions de milions de tokens"
+  ],
+  "scaleLead": "Es repeteix sobre",
+  "gpu": "GPU",
+  "multiply": "×",
+  "parallel": "multiplicacions en paral·lel",
+  "pretraining": "Preentrenament",
+  "pretrainingDetail": "predir text",
+  "adjustment": "Ajust per conversar",
+  "adjustmentDetail": "instruccions i preferències humanes",
+  "use": "Ús",
+  "useDetail": "inferència",
+  "cutoff": "Data de tall de l’entrenament",
+  "context": "Context",
+  "conversation": "La conversa",
+  "question": "Com puc explicar els tokens?",
+  "answer": "Resposta",
+  "answerExample": "Cada token és un tros de text.",
+  "locked": "Pesos fixats",
+  "memory": "Memòria de l’aplicació",
+  "savedText": "Text desat",
+  "memoryExample": "Prefereixo exemples d’educació d’adults.",
+  "questionLabel": "Pregunta",
+  "account": "Compte",
+  "configuration": "Configuració",
+  "conversations": "Converses",
+  "nextModel": "Entrenament del model següent",
+  "depends": "Depèn del compte i de la configuració",
+  "captions": [
+    "Entrenar ajusta els pesos. Fer-lo servir els aplica.",
+    "Predir, comparar, corregir. I tornar-hi.",
+    "La GPU fa milers de multiplicacions alhora.",
+    "Primer s’entrena. Després es fa servir.",
+    "Quan el fas servir, els pesos no canvien.",
+    "El que sembla memòria és text desat que s’afegeix al context.",
+    "Les converses poden servir per entrenar el model següent."
+  ],
+  "notes": [
+    "Simplificat: l’entrenament té moltes etapes i moltes dades.",
+    "Simplificat: les rodetes mostren un ajust de molts pesos.",
+    "Quadrícula simbòlica: no representa cap GPU ni cap model concrets.",
+    "El que ve després necessita context actualitzat o cerca.",
+    "Simplificat: es mostra una resposta sencera en lloc de token a token.",
+    "Exemple fictici. La memòria disponible depèn de l’aplicació.",
+    "Que l’empresa les faci servir depèn del compte i de la configuració."
+  ],
+  "weightStamp": "Pesos il·lustratius",
+  "fictionalStamp": "Exemple fictici"
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current=0, totalSteps=1, drawStep, generation=0;
+const EASE='cubic-bezier(.2,.8,.2,1)';
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* ANIM: només s'anima en avançar (o en reiniciar) i sense «reduir moviment». En retrocedir, estat final directe. */
+let ANIM=true;
+function motion(el,frames,options={}){if(!el||!ANIM)return null;return el.animate(frames,{duration:600,easing:EASE,fill:'both',...options});}
+function show(html,caption='',note='',stamp=''){
+  $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+  motion($('#caption'),[{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'translateY(0)'}],{duration:560});
+  motion($('#note'),[{opacity:0},{opacity:1}],{duration:560,delay:120});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* ---------- Degradats comuns (una sola llum, de dalt a l'esquerra) ---------- */
+document.body.insertAdjacentHTML('afterbegin',`<svg id="defs3d" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="gCone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D6DBE6"/><stop offset="1" stop-color="#8A92A5"/></linearGradient>
+<linearGradient id="gConeC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EE7F63"/><stop offset="1" stop-color="#C13D22"/></linearGradient>
+<linearGradient id="gSteel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3F5F9"/><stop offset="1" stop-color="#9AA2B4"/></linearGradient>
+<linearGradient id="gLock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#58C79F"/><stop offset="1" stop-color="#14704F"/></linearGradient>
+<linearGradient id="gPinV" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F3F5F9"/><stop offset="1" stop-color="#97A0B3"/></linearGradient>
+<linearGradient id="gPinH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3F5F9"/><stop offset="1" stop-color="#97A0B3"/></linearGradient>
+<linearGradient id="gPkg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E6E1D4"/></linearGradient>
+<linearGradient id="gDie" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F7FF"/><stop offset="1" stop-color="#C9D7FF"/></linearGradient>
+<linearGradient id="gTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F1EDE3"/><stop offset="1" stop-color="#DAD4C5"/></linearGradient>
+<linearGradient id="gFront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CCC5B3"/><stop offset="1" stop-color="#A8A18F"/></linearGradient>
+<radialGradient id="gLed" cx=".42" cy=".38" r=".78"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".34" stop-color="#9DB7FF"/><stop offset="1" stop-color="#2F55D4"/></radialGradient>
+<radialGradient id="gLamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FF6A45" stop-opacity=".85"/><stop offset=".4" stop-color="#E24A2A" stop-opacity=".38"/><stop offset="1" stop-color="#D2462A" stop-opacity="0"/></radialGradient>
+<radialGradient id="gLedC" cx=".4" cy=".36" r=".75"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".35" stop-color="#FF8F70"/><stop offset="1" stop-color="#C13D22"/></radialGradient>
+<clipPath id="clipDie"><rect x="64" y="60" width="1648" height="306" rx="24"/></clipPath>
+<linearGradient id="gSweep" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".8"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<pattern id="haz" width="30" height="30" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><rect width="30" height="30" fill="#FFFFFF"/><rect width="15" height="30" fill="#D2462A"/></pattern>
+</defs></svg>`);
+
+/* ---------- Dibuixos reutilitzables ---------- */
+/* Rodeta: manec físic; .ptr és el que gira (data-a = angle de repòs) */
+function dial(angle=0,tone='blue',enc=-1){
+  let ticks='';
+  for(let a=-135;a<=135;a+=45)ticks+=`<i class="tk" style="--a:${a}deg"></i>`;
+  const h=`<span class="dial ${tone}" aria-hidden="true">${ticks}<span class="kn"><i class="ptr" data-a="${angle}" style="transform:rotate(${angle}deg)"><b></b></i><u></u></span></span>`;
+  return enc<0?h:`<span class="dw" data-encen data-llum="${tone}" style="--d:${enc}ms">${h}</span>`;
+}
+/* Candau: cos amb gruix, arc d'acer i clau; amb ombra de contacte */
+function lockIcon(){return `<svg class="lock" viewBox="0 0 64 72" aria-hidden="true">
+<path d="M18 34 V22 a14 14 0 0 1 28 0 V34" fill="none" stroke="#4B5262" stroke-width="10.5" stroke-linecap="round"/>
+<path d="M18 34 V22 a14 14 0 0 1 28 0 V34" fill="none" stroke="url(#gSteel)" stroke-width="7.5" stroke-linecap="round"/>
+<path d="M16.2 32 V22 a15.8 15.8 0 0 1 12-15.3" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="8" y="35" width="48" height="36" rx="9" fill="#0C5B40"/>
+<rect x="8" y="30" width="48" height="36" rx="9" fill="url(#gLock)" stroke="#0E5F44" stroke-width="2"/>
+<path d="M13 40 a6 6 0 0 1 6-5 H45" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="2.4" stroke-linecap="round"/>
+<circle cx="32" cy="46" r="5" fill="#0B3F2E"/><path d="M32 48 V56" stroke="#0B3F2E" stroke-width="4.5" stroke-linecap="round"/></svg>`;}
+function syncIcon(){return `<svg class="sync" viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`;}
+function noteIcon(w=64){return `<svg class="ico" width="${w}" height="${w}" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 6 H40 L52 18 V56 a4 4 0 0 1 -4 4 H14 a4 4 0 0 1 -4 -4 V10 a4 4 0 0 1 4 -4 Z" fill="#fff"/><path d="M40 6 V18 H52"/><path d="M20 32 H42 M20 44 H42"/></svg>`;}
+const ANGLES=[20,-50,75,130];
+/* d = retardo (ms) del destello de llegada del candado o del botón de sincronizar */
+function wcap(tone,{locked=false,icon=false,d=900}={}){return `<div class="wcap${locked?' locked':''}">${ANGLES.map(a=>dial(a,tone)).join('')}${locked?`<i class="sep"></i><span class="lw" data-encen data-llum="green" style="--d:${d}ms">${lockIcon()}</span>`:''}${icon?`<i class="sep"></i><span class="btn3d" data-encen data-llum="blue" style="--d:${d}ms">${syncIcon()}</span>`:''}</div>`;}
+/* Tub: ombra apilada (sense filtres: una línia recta té un requadre pla), vora fosca, cos i brillantor */
+const STEEL={rim:'#565D6E',body:'#A9B0BF',hl:'rgba(255,255,255,.78)'};
+const CORALT={rim:'#8A2713',body:'#D2462A',hl:'rgba(255,255,255,.5)'};
+/* v4 · Llum: tubo de neón = halo desenfocado (copia del trazo) + borde + cuerpo vivo + núcleo claro centrado */
+const NEONC={rim:'#B9341B',body:'#F26A4B',hl:'rgba(255,245,240,.97)',glow:'rgba(226,84,52,.70)',neon:true};
+function tube(d,w,p){
+  const sh=[[w+14,.07],[w+8,.08],[w+3,.13]].map(([sw,a])=>`<path class="sh" d="${d}" style="stroke:rgba(21,23,28,${a});stroke-width:${sw}px;translate:${(w*.3).toFixed(1)}px ${(w*.85).toFixed(1)}px"/>`).join('');
+  const gl=p.glow?`<path class="gl" d="${d}" style="stroke:${p.glow};stroke-width:${w+14}px;filter:blur(${Math.max(5,Math.round(w*.55))}px)"/>`:'';
+  const hw=p.neon?Math.max(2.5,w*.28):Math.max(1.5,w*.2),ht=p.neon?'0px 0px':`${(-w*.12).toFixed(1)}px ${(-w*.22).toFixed(1)}px`;
+  return `<g class="tb">${sh}${gl}<path class="rim" d="${d}" style="stroke:${p.rim};stroke-width:${w+2}px"/><path class="bd" d="${d}" style="stroke:${p.body};stroke-width:${(w*.78).toFixed(1)}px"/><path class="hl" d="${d}" style="stroke:${p.hl};stroke-width:${hw.toFixed(1)}px;translate:${ht}"/></g>`;
+}
+function arrowSvg(w=96,tone='',extra=''){const h=64,y=30;return `<svg class="arr ${tone} ${extra}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${tube(`M8 ${y} H${w-22}`,11,STEEL)}<polygon class="cone hd" points="${w-36},${y-20} ${w-4},${y} ${w-36},${y+20}" style="fill:url(#gCone);stroke:#565D6E"/></svg>`;}
+
+/* ---------- Animacions (sempre amb propietats soltes: translate/scale, per no esborrar les inclinacions) ---------- */
+function enter(sel,{delay=0,gap=80,dx=0,dy=20,dur=560}={}){
+  const els=typeof sel==='string'?document.querySelectorAll(sel):(sel.length===undefined?[sel]:sel);
+  [...els].forEach((el,i)=>motion(el,[{opacity:0,translate:`${dx}px ${dy}px`},{opacity:1,translate:'0px 0px'}],{duration:dur,delay:delay+i*gap,fill:'backwards'}));
+}
+function drawPath(el,delay=0,dur=520){
+  if(!el||!ANIM)return;const L=el.getTotalLength();
+  el.animate([{strokeDasharray:`${L}`,strokeDashoffset:L},{strokeDasharray:`${L}`,strokeDashoffset:0}],{duration:dur,delay,easing:EASE,fill:'backwards'});
+}
+function drawTube(g,delay=0,dur=520){if(!g||!ANIM)return;g.querySelectorAll('path').forEach(p=>drawPath(p,delay,dur));}
+function drawArrow(svg,delay=0,dur=480){
+  if(!svg||!ANIM)return;
+  drawTube(svg.querySelector('.tb'),delay,dur);
+  motion(svg.querySelector('.hd'),[{opacity:0,scale:.4},{opacity:1,scale:1}],{duration:200,delay:delay+dur*.8,fill:'backwards'});
+}
+function turn(els,{delay=0,gap=90,dur=1000,span=70}={}){
+  [...els].forEach((el,i)=>{const a=+el.dataset.a;
+    motion(el,[{transform:`rotate(${a-span}deg)`},{transform:`rotate(${a+span*.4}deg)`,offset:.42},{transform:`rotate(${a-span*.18}deg)`,offset:.74},{transform:`rotate(${a}deg)`}],{duration:dur,delay:delay+i*gap,fill:'backwards',easing:'ease-in-out'});});
+}
+function pop(el,delay=0){motion(el,[{opacity:0,transform:'scale(.5)'},{opacity:1,transform:'scale(1.12)',offset:.7},{opacity:1,transform:'scale(1)'}],{duration:520,delay,fill:'backwards'});}
+
+/* ---------- Passos ---------- */
+function step1(T){
+  show(`<div class="cols">
+    <section class="card tint-blue col train"><div class="hd">${esc(T.training)}</div><div class="sub">${esc(T.trainingTime)}</div>
+      <div class="card model"><div class="lbl">${esc(T.model)}</div>${wcap('blue',{icon:true,d:620})}</div>
+      <div class="desc">${esc(T.trainingSub)}</div></section>
+    <section class="card tint-green col infer"><div class="hd">${esc(T.inference)}</div><div class="sub">${esc(T.inferenceTime)}</div>
+      <div class="card model"><div class="lbl">${esc(T.model)}</div>${wcap('green',{locked:true,d:960})}</div>
+      <div class="desc">${esc(T.inferenceSub)}</div></section></div>`,T.captions[0],T.notes[0],T.weightStamp);
+  enter('.col',{gap:110,dy:24});
+  turn(document.querySelectorAll('.train .ptr'),{delay:350});
+  pop($('.infer .lock'),700);
+}
+
+function step2(T,gen){
+  show(`<div class="a2">
+    <div class="top"><span>${esc(T.input)}</span><span class="slot" role="img" aria-label="${esc(T.hidden)}"></span></div>
+    <div class="row">
+      <div class="card cyc c-pred"><span class="k">${esc(T.prediction)}</span><strong class="word pred">${esc(T.predictedWord)}</strong></div>
+      ${arrowSvg(112)}
+      <div class="card cyc c-real"><span class="k">${esc(T.realWord)}</span><strong class="word real" data-encen data-llum="green" style="--d:1000ms">${esc(T.targetWord)}</strong></div>
+      ${arrowSvg(112)}
+      <div class="card tint-coral cyc c-err"><strong class="t">${esc(T.error)}</strong><div class="dials">${[40,-25,95,150].map((a,i)=>dial(a,'coral',1080+i*70)).join('')}</div></div>
+    </div>
+    <svg class="loop" viewBox="0 0 1776 140" aria-hidden="true">${tube('M1517 6 V68 Q1517 100 1485 100 H291 Q259 100 259 68 V32',12,NEONC)}<polygon class="cone neon lh" points="238,42 259,6 280,42" style="fill:url(#gConeC);stroke:#8A2713"/></svg>
+    <div class="card scale"><span>${esc(T.scaleLead)}</span><strong>${esc(T.scale)}</strong></div></div>`,T.captions[1],T.notes[1],T.illustrative);
+  enter('.a2 .top',{dur:480,dy:16});
+  enter('.c-pred',{delay:200,dy:20});
+  const arrows=document.querySelectorAll('.a2 .arr');
+  drawArrow(arrows[0],420,380);
+  enter('.c-real',{delay:520,dy:20});
+  drawArrow(arrows[1],760,380);
+  enter('.c-err',{delay:880,dy:20});
+  turn(document.querySelectorAll('.c-err .ptr'),{delay:1000,gap:70,dur:760,span:34});
+  drawTube($('.a2 .loop .tb'),1180,420);
+  motion($('.a2 .lh'),[{opacity:0,scale:.4},{opacity:1,scale:1}],{duration:200,delay:1500,fill:'backwards'});
+  enter('.a2 .scale',{delay:1120,dy:16,dur:520});
+  if(ANIM){
+    const strong=$('.a2 .scale strong');strong.textContent=T.scaleStages[0];
+    [1260,1400,1540].forEach((d,k)=>setTimeout(()=>{if(gen===generation&&$('.a2 .scale strong'))$('.a2 .scale strong').textContent=T.scaleStages[k+1];},d));
+  }
+}
+
+/* Xip en relleu: encapsulat amb cantell, potes metàl·liques, «die» elevat i una matriu de cel·les que s'encenen per onades */
+function gpuChip(){
+  const W=1776,H=448,cols=64,rows=13,x0=88,y0=78,gw=1600,gh=264,gap=6,bands=16,per=cols/bands;
+  const cw=(gw-(cols-1)*gap)/cols,ch=(gh-(rows-1)*gap)/rows;
+  let pins='';
+  for(let i=0;i<34;i++){const x=(72+i*((W-144)/33)-8).toFixed(1);pins+=`<rect x="${x}" y="2" width="16" height="32" rx="4" style="fill:url(#gPinV)"/><rect x="${x}" y="${H-34}" width="16" height="32" rx="4" style="fill:url(#gPinV)"/>`;}
+  for(let i=0;i<8;i++){const y=(64+i*((H-128)/7)-8).toFixed(1);pins+=`<rect x="2" y="${y}" width="32" height="16" rx="4" style="fill:url(#gPinH)"/><rect x="${W-34}" y="${y}" width="32" height="16" rx="4" style="fill:url(#gPinH)"/>`;}
+  let dim='',lit='';
+  for(let b=0;b<bands;b++){let g='';
+    for(let k=0;k<per;k++){const c=b*per+k;
+      for(let r=0;r<rows;r++){
+        const x=(x0+c*(cw+gap)).toFixed(1),y=(y0+r*(ch+gap)).toFixed(1);
+        if(b===0)dim+=`<rect x="${x}" y="${y}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="3"/>`;
+        const v=((c*37+r*91+c*r*7)%11)/10;
+        if(v>0.12)g+=`<rect x="${x}" y="${y}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="4" fill-opacity="${(0.42+0.58*v).toFixed(2)}"/>`;
+      }}
+    lit+=`<g class="band">${g}</g>`;}
+  // la resta de bandes també necessiten les cel·les apagades
+  for(let c=per;c<cols;c++)for(let r=0;r<rows;r++){dim+=`<rect x="${(x0+c*(cw+gap)).toFixed(1)}" y="${(y0+r*(ch+gap)).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="4"/>`;}
+  return `<svg class="chip3" viewBox="0 0 ${W} ${H}" aria-hidden="true"><g class="pins" style="stroke:#7C8496;stroke-width:1.5">${pins}</g>`
+   +`<rect x="24" y="38" width="${W-48}" height="386" rx="40" style="fill:#B9B29F"/>`
+   +`<rect x="24" y="24" width="${W-48}" height="386" rx="40" style="fill:url(#gPkg);stroke:rgba(21,23,28,.28);stroke-width:3"/>`
+   +`<rect x="34" y="34" width="${W-68}" height="366" rx="32" style="fill:none;stroke:rgba(255,255,255,.95);stroke-width:2"/>`
+   +`<circle cx="52" cy="52" r="8" style="fill:rgba(21,23,28,.4)"/>`
+   +`<rect class="dieglow" x="64" y="60" width="${W-128}" height="306" rx="24" style="fill:#3B63E0;fill-opacity:.62"/>`
+   +`<g class="die-sh"><rect x="64" y="72" width="${W-128}" height="306" rx="24" style="fill:#6F8AE0"/><rect x="64" y="60" width="${W-128}" height="306" rx="24" style="fill:url(#gDie);stroke:rgba(47,85,212,.5);stroke-width:3"/></g>`
+   +`<g class="dim">${dim}</g><g class="leds">${lit}</g>`
+   +`<g clip-path="url(#clipDie)"><rect class="sweep" x="100" y="40" width="300" height="350" transform="skewX(-14)" style="fill:url(#gSweep);opacity:0"/></g></svg>`;
+}
+function step3(T){
+  show(`<div class="a3"><div class="gpuh"><span class="gpu" data-encen data-llum="blue" style="--d:520ms">${esc(T.gpu)}</span><span class="x">${esc(T.multiply)}</span><span class="par">${esc(T.parallel)}</span></div>${gpuChip()}</div>`,T.captions[2],T.notes[2],T.illustrative);
+  enter('.a3 .gpuh',{dur:520,dy:16});
+  motion($('.a3 .chip3'),[{opacity:0,translate:'0px 36px',scale:.97},{opacity:1,translate:'0px 0px',scale:1}],{duration:600,delay:120,fill:'backwards'});
+  document.querySelectorAll('.a3 .band').forEach((g,i)=>motion(g,[{opacity:0},{opacity:1,offset:.4},{opacity:.95}],{duration:620,delay:380+i*45,fill:'backwards'}));
+  // franja de luz que cruza el die una sola vez, un poco por detrás de la onda de encendido
+  motion($('.a3 .sweep'),[{translate:'0px 0px',opacity:0},{opacity:1,offset:.1},{opacity:1,offset:.86},{translate:'1650px 0px',opacity:0}],{duration:1050,delay:430,easing:'cubic-bezier(.45,0,.25,1)',fill:'none'});
+}
+
+/* Pas 4: una pista amb gruix (projecció obliqua), tatxes en relleu i la data de tall com una barrera ratllada */
+function step4(T){
+  const TF=506,DX=26,DY=30,TH=18,TL=1696,TIP=1764,cx=[240,928,1576],cut=1332,BW=30,BH=326,BDX=22,BDY=26,Bx=cut-BW/2,By=TF-BH;
+  const stroke='stroke="rgba(21,23,28,.20)" stroke-width="2" stroke-linejoin="round"';
+  const track=`<g class="track" style="filter:drop-shadow(0 16px 10px rgba(21,23,28,.28))">`
+   +`<path d="M0 ${TF} H${TL} V${TF+TH} H0 Z" fill="url(#gFront)" ${stroke}/>`
+   +`<path d="M${TL} ${TF} L${TIP} ${TF-DY/2} V${TF-DY/2+TH} L${TL} ${TF+TH} Z" fill="#B3AC9A" ${stroke}/>`
+   +`<path d="M0 ${TF} H${TL} L${TL+DX} ${TF-DY} H${DX} Z" fill="url(#gTop)" ${stroke}/>`
+   +`<path d="M${TL} ${TF} L${TL+DX} ${TF-DY} L${TIP} ${TF-DY/2} Z" fill="url(#gTop)" ${stroke}/>`
+   +`<path d="M${DX/2+14} ${TF-DY/2} H${TL-10}" fill="none" stroke="rgba(21,23,28,.22)" stroke-width="3" stroke-dasharray="20 16" stroke-linecap="round"/>`
+   +`<path d="M4 ${TF+3} H${TL-4}" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2" stroke-linecap="round"/></g>`;
+  const stems=cx.map(x=>tube(`M${x} 436 V${TF-DY/2-6}`,7,STEEL)).join('');
+  const studs=cx.map(x=>{const sy=TF-DY/2;return `<g class="stud"><path d="M${x-18} ${sy} V${sy+10} A18 8.5 0 0 0 ${x+18} ${sy+10} V${sy}" style="fill:#8FA6EA;stroke:#3F5FC9;stroke-width:2.5"/><ellipse cx="${x}" cy="${sy}" rx="18" ry="8.5" style="fill:url(#gDie);stroke:#2F55D4;stroke-width:3"/><ellipse cx="${x-2}" cy="${sy-1}" rx="8" ry="3.4" style="fill:#fff"/></g>`;}).join('');
+  const bar=`<g class="barrier" style="filter:drop-shadow(10px 8px 6px rgba(21,23,28,.32)) drop-shadow(0 0 11px rgba(210,70,42,.55))">`
+   +`<polygon points="${Bx+BW},${TF} ${Bx+BW+BDX},${TF-BDY} ${Bx+BW+BDX},${By-BDY} ${Bx+BW},${By}" style="fill:#9C3118;stroke:#6E200F;stroke-width:2;stroke-linejoin:round"/>`
+   +`<polygon points="${Bx},${By} ${Bx+BW},${By} ${Bx+BW+BDX},${By-BDY} ${Bx+BDX},${By-BDY}" style="fill:#F6C9BC;stroke:#9C3118;stroke-width:2;stroke-linejoin:round"/>`
+   +`<rect x="${Bx}" y="${By}" width="${BW}" height="${BH}" style="fill:url(#haz);stroke:#9C3118;stroke-width:3"/></g>`;
+  // luz de aviso: mancha coral sobre la pista, a los pies de la barrera, y una baliza LED en lo alto (degradados radiales: sin filtros)
+  const bx=Bx+(BW+BDX)/2,by=By-BDY/2;
+  const lamp=`<g class="lamp"><ellipse cx="${bx}" cy="${TF-DY/2+6}" rx="150" ry="30" style="fill:url(#gLamp);opacity:.75"/>`
+   +`<circle cx="${bx}" cy="${by}" r="52" style="fill:url(#gLamp)"/><ellipse cx="${bx}" cy="${by}" rx="13" ry="9" style="fill:url(#gLedC);stroke:#8A2713;stroke-width:2"/></g>`;
+  show(`<div class="a4">
+    <svg class="tl" viewBox="0 0 1776 612" aria-hidden="true">${track}${stems}${studs}<g data-encen data-llum="coral" style="--d:1460ms">${bar}${lamp}</g></svg>
+    <div class="cutwrap"><div class="cutpill">${esc(T.cutoff)}</div></div>
+    <div class="card tint-blue ph p1"><strong class="t">${esc(T.pretraining)}</strong><span class="d">${esc(T.pretrainingDetail)}</span></div>
+    <div class="card tint-blue ph p2"><strong class="t">${esc(T.adjustment)}</strong><span class="d">${esc(T.adjustmentDetail)}</span></div>
+    <div class="card edge-blue ph p3" data-encen data-llum="blue" style="--d:1560ms"><strong class="t">${esc(T.use)}</strong><span class="d">${esc(T.useDetail)}</span></div></div>`,T.captions[3],T.notes[3]);
+  motion($('.a4 .track'),[{opacity:0,scale:'0 1'},{opacity:1,scale:'1 1'}],{duration:760,fill:'backwards'});
+  enter('.a4 .ph',{gap:140,dx:-24,dy:0,dur:560});
+  document.querySelectorAll('.a4 .stud,.a4 .tb').forEach((el,i)=>motion(el,[{opacity:0},{opacity:1}],{duration:400,delay:380+(i%3)*140,fill:'backwards'}));
+  motion($('.a4 .barrier'),[{opacity:0,transform:'translateY(-90px)'},{opacity:1,transform:'translateY(0)'}],{delay:900,duration:620,fill:'backwards'});
+  motion($('.a4 .lamp'),[{opacity:0},{opacity:0,offset:.7},{opacity:1}],{delay:900,duration:620,fill:'backwards'});
+  enter('.a4 .cutpill',{delay:1000,dur:520,dy:-14});
+}
+
+function step5(T){
+  show(`<div class="flow f5">
+    <div class="card tint-blue node ctx"><strong class="t">${esc(T.context)}</strong><div class="bubble">${esc(T.question)}</div></div>
+    ${arrowSvg(80)}
+    <div class="card tint-green node mdl" data-reflex style="--dr:1150ms"><strong class="t">${esc(T.model)}</strong>${wcap('green',{locked:true,d:1000})}<span class="fixed">${esc(T.locked)}</span></div>
+    ${arrowSvg(80)}
+    <div class="card tint-blue node ans"><strong class="t">${esc(T.answer)}</strong><div class="bubble">${esc(T.answerExample)}</div></div></div>`,T.captions[4],T.notes[4],T.weightStamp);
+  const ar=document.querySelectorAll('.f5 .arr');
+  enter('.ctx',{dx:-24,dy:0});
+  drawArrow(ar[0],360,420);
+  enter('.mdl',{delay:560,dy:20});
+  pop($('.mdl .lock'),900);
+  drawArrow(ar[1],1000,420);
+  enter('.ans',{delay:1240,dx:-24,dy:0});
+}
+
+function step6(T){
+  show(`<div class="flow f6">
+    <div class="card tint-blue node mem">${noteIcon(72)}<strong class="t">${esc(T.memory)}</strong><p>${esc(T.memoryExample)}</p></div>
+    ${arrowSvg(72,'','a1')}
+    <div class="card node ctx"><strong class="t">${esc(T.context)}</strong>
+      <div class="piece saved" data-encen data-llum="blue" style="--d:1330ms"><span class="pl">${esc(T.savedText)}</span>${esc(T.memoryExample)}</div>
+      <div class="piece ask"><span class="pl">${esc(T.questionLabel)}</span>${esc(T.question)}</div></div>
+    ${arrowSvg(72)}
+    <div class="card tint-green node mdl"><strong class="t">${esc(T.model)}</strong>${wcap('green',{locked:true,d:1640})}</div></div>`,T.captions[5],T.notes[5],T.fictionalStamp);
+  const ar=document.querySelectorAll('.f6 .arr');
+  enter('.mem',{dx:-24,dy:0});
+  drawArrow(ar[0],420,380);
+  enter('.f6 .ctx',{delay:560,dy:0,dur:480});
+  motion($('.piece.saved'),[{opacity:0,translate:'-72px 0px'},{opacity:1,translate:'0px 0px'}],{duration:700,delay:720,fill:'backwards'});
+  enter('.piece.ask',{delay:1060,dy:16,dur:480});
+  drawArrow(ar[1],1240,380);
+  enter('.f6 .mdl',{delay:1360,dy:16,dur:480});
+  pop($('.f6 .mdl .lock'),1560);
+}
+
+function swHtml(label,id){return `<div class="swg"><span class="swl">${esc(label)}</span><span class="sw" data-sw="${id}" data-encen data-llum="coral" style="--d:${760+id*280}ms"><i class="gl"></i><i class="kn"><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5 L10 17 L18.5 7.5"/></svg></i></span></div>`;}
+function step7(T){
+  const Y=446;
+  show(`<div class="a7">
+    <svg class="gate" viewBox="0 0 784 612" aria-hidden="true">
+      ${tube(`M392 306 V${Y-20}`,8,STEEL)}
+      <g class="pipe">${tube(`M16 ${Y} H736`,26,STEEL)}</g>
+      <g class="flow">${tube(`M16 ${Y} H736`,14,NEONC)}</g>
+      <g data-encen data-llum="coral" style="--d:1440ms"><polygon class="cone neon hd" points="722,${Y-32} 770,${Y} 722,${Y+32}" style="fill:url(#gConeC);stroke:#8A2713"/></g>
+      <g class="bar" style="filter:drop-shadow(7px 9px 5px rgba(21,23,28,.38))"><rect x="368" y="${Y-62}" width="48" height="124" rx="12" style="fill:#7C8397;stroke:#3F4553;stroke-width:3"/><rect x="375" y="${Y-54}" width="12" height="108" rx="6" style="fill:rgba(255,255,255,.4)"/></g>
+      <circle class="dot" cx="392" cy="${Y}" r="46" style="fill:url(#gLamp)"/><circle class="dot" cx="392" cy="${Y}" r="14" style="fill:url(#gLedC);stroke:#8A2713;stroke-width:2"/></svg>
+    <div class="card L tint-blue"><strong class="t">${esc(T.conversations)}</strong></div>
+    <div class="card sws"><div class="cond">${esc(T.depends)}</div><div class="swrow">${swHtml(T.account,0)}${swHtml(T.configuration,1)}</div></div>
+    <div class="card R tint-blue dashed"><strong class="t">${esc(T.nextModel)}</strong></div></div>`,T.captions[6],T.notes[6]);
+  const sws=[...document.querySelectorAll('.sw')];
+  enter('.a7 .L',{dx:-24,dy:0});
+  enter('.a7 .sws',{delay:140,dy:-16});
+  enter('.a7 .R',{delay:280,dx:24,dy:0});
+  const bar=$('.a7 .gate .bar');
+  if(ANIM){
+    // Arrenca amb els dos interruptors apagats i el conducte tancat per la vàlvula; s'encenen d'un en un, la vàlvula s'aixeca i el flux omple el conducte.
+    sws.forEach((sw,i)=>{
+      const d=520+i*280,kn=sw.querySelector('.kn'),ck=sw.querySelector('.ck'),gl=sw.querySelector('.gl');
+      sw.animate([{backgroundColor:'rgba(95,90,80,.38)'},{backgroundColor:'rgba(95,90,80,.38)',offset:.01},{backgroundColor:'#D2462A'}],{duration:420,delay:d,easing:EASE,fill:'backwards'});
+      kn.animate([{transform:'translateX(0)'},{transform:'translateX(72px)'}],{duration:420,delay:d,easing:EASE,fill:'backwards'});
+      ck.animate([{opacity:0},{opacity:0,offset:.5},{opacity:1}],{duration:420,delay:d,fill:'backwards'});
+      gl.animate([{opacity:0},{opacity:0,offset:.4},{opacity:1}],{duration:420,delay:d,fill:'backwards'});
+    });
+    bar.animate([{opacity:1,transform:'translateY(0)'},{opacity:1,transform:'translateY(0)',offset:.01},{opacity:0,transform:'translateY(-70px)'}],{duration:380,delay:1060,easing:EASE,fill:'both'});
+    drawTube($('.a7 .gate .flow'),1100,420);
+    motion($('.a7 .gate .hd'),[{opacity:0,scale:.4},{opacity:1,scale:1}],{duration:200,delay:1460,fill:'backwards'});
+    document.querySelectorAll('.a7 .gate .dot').forEach(c=>motion(c,[{opacity:0,scale:.4},{opacity:1,scale:1}],{duration:320,delay:1060,fill:'backwards'}));
+  }else{
+    bar.style.display='none';
+  }
+}
+
+function renderStep(step,prev=step){
+  ANIM=!reduced()&&step>=prev;
+  [step1,step2,step3,step4,step5,step6,step7][step](TEXTOS,generation);
+}
+
+/* Fons temàtic (el crida IA-S1-comu.js): una placa de circuit en perspectiva, a dalt a la dreta. Pistes en relleu, xips amb potes
+   i condensadors elevats (translateZ). Sense text; desenfocada i amb màscara perquè no competeixi amb el contingut. */
+window.fonsIA=function(capa){
+  const rt=(x1,y1,x2,y2,xa)=>{const dy=y2-y1,dir=Math.sign(x2-x1)||1,xb=xa+dir*Math.abs(dy);return `M${x1} ${y1} H${xa} L${xb} ${y2} H${x2}`;};
+  const rv=(x1,y1,x2,y2,ya)=>{const dx=x2-x1,dir=Math.sign(y2-y1)||1,yb=ya+dir*Math.abs(dx);return `M${x1} ${y1} V${ya} L${x2} ${yb} V${y2}`;};
+  const lines=[];
+  const bus=(f,n,sp,args)=>{for(let k=0;k<n;k++)lines.push(f(...args(k*sp)));};
+  bus(rt,6,18,o=>[460,200+o,800,420+o,540+o*.6]);          // xip A -> CPU
+  bus(rt,6,18,o=>[1250,210+o,1140,440+o,1200-o*.6]);        // xip B -> CPU
+  bus(rt,5,18,o=>[660,800+o,800,620+o,700+o*.5]);           // xip C -> CPU
+  bus(rt,5,18,o=>[1230,790+o,1140,610+o,1190-o*.5]);        // xip D -> CPU
+  bus(rt,5,18,o=>[760,110+o,1250,230+o,880+o]);             // xip F -> B
+  bus(rv,5,18,o=>[150+o,470,300+o,330,420]);                // xip E -> A
+  bus(rt,4,18,o=>[420,620+o,260,760+o,380]);                // C -> E
+  let tr='',via='';
+  lines.forEach(d=>{tr+=`<path d="${d}" style="fill:none;stroke:#86BCA3;stroke-width:10;stroke-linecap:round;stroke-linejoin:round"/><path d="${d}" style="fill:none;stroke:#F6FBF8;stroke-width:5;stroke-linecap:round;stroke-linejoin:round"/>`;});
+  [[460,200],[800,420],[1250,210],[1140,440],[660,800],[800,620],[1230,790],[1140,610],[760,110],[150,470],[300,330]].forEach(([x,y],k)=>{
+    if(k%2===0)via+=`<circle cx="${x}" cy="${y}" r="46" style="fill:url(#pcbGlow)"/>`;
+    via+=`<circle cx="${x}" cy="${y}" r="9" style="fill:${k%2===0?'#FFF3C4':'#E4BC59'};stroke:#A97A18;stroke-width:3"/>`;});
+  // v4 · Llum: tres pistas con corriente (trazo claro con halo, sin filtros)
+  let lit='';
+  [2,9,23].forEach(i=>{const d=lines[i];if(d)lit+=`<path d="${d}" style="fill:none;stroke:rgba(90,235,170,.55);stroke-width:20;stroke-linecap:round;stroke-linejoin:round"/><path d="${d}" style="fill:none;stroke:#E9FFF5;stroke-width:5;stroke-linecap:round;stroke-linejoin:round"/>`;});
+  const board=`<svg viewBox="0 0 1600 1100" aria-hidden="true"><defs><linearGradient id="pcbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D2EDE0"/><stop offset="1" stop-color="#A9D6C1"/></linearGradient><radialGradient id="pcbGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFE9A0" stop-opacity=".95"/><stop offset=".45" stop-color="#F4C74A" stop-opacity=".42"/><stop offset="1" stop-color="#F4C74A" stop-opacity="0"/></radialGradient></defs>`
+    +`<rect x="0" y="18" width="1600" height="1082" rx="40" style="fill:#8DBBA4"/><rect x="0" y="0" width="1600" height="1082" rx="40" style="fill:url(#pcbg);stroke:#86BCA3;stroke-width:6"/>`
+    +`<rect x="26" y="26" width="1548" height="1030" rx="26" style="fill:none;stroke:rgba(255,255,255,.7);stroke-width:3"/>`
+    +[[60,60],[1540,60],[60,1022],[1540,1022]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="16" style="fill:#EEF7F2;stroke:#86BCA3;stroke-width:5"/>`).join('')
+    +tr+lit+via+`</svg>`;
+  const chips=[[800,380,340,340,44],[260,170,200,160,26],[1250,160,170,230,30],[420,760,240,180,26],[1230,740,210,170,28],[120,470,100,100,20],[640,90,120,90,20],[1100,930,120,100,20]];
+  const caps=[[560,560,46,26],[1180,560,46,26],[640,420,36,22],[980,860,46,26],[330,560,36,22],[1440,520,46,26],[900,200,46,26],[700,980,36,22]];
+  capa.innerHTML=`<div class="pcb">${board}`
+    +chips.map(([l,t,w,h,z],k)=>`<i class="ch${k<3?' on':''}" style="left:${l}px;top:${t}px;width:${w}px;height:${h}px;--z:${z}px"></i>`).join('')
+    +caps.map(([l,t,w,h])=>`<i class="cap" style="left:${l}px;top:${t}px;width:${w}px;height:${h}px"></i>`).join('')+`</div>`;
+};
+boot(7,renderStep);
+
+</script><script src="IA-S1-comu.js"></script></body></html>

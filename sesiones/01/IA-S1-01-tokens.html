@@ -1,0 +1,520 @@
+<!doctype html>
+<!--
+A1: tiktoken 0.14.0, encoding o200k_base (GPT-4o).
+Official implementation: https://github.com/openai/tiktoken
+Vocabulary: https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken
+Computed locally on 2026-10-13. Sentence CA 14 tokens, EN 9. Four-sentence paragraph CA 50, EN 34.
+ferrocarril: fer=855, roc=27212, arr=1614, il=311; 11 Unicode letters.
+Exact strings and token IDs embedded in TEXTOS. Middle dot displays U+0020 spaces only.
+These are text-only counts, not chat serialization or model reasoning tokens.
+Cost comparison is conditional on a per-token price; result applies to these examples.
+Linguistic/token-count numerals are computed counts, not invented model statistics.
+Material docent local, versió 1. Totes les dades il·lustratives es marquen en pantalla.
+v2 (13-10-2026): disseny nou. Tokens com a fitxes pastel rotatives, recomptes grans amb barres, lletres sota el seu token.
+v3 (13-10-2026): profunditat. Fitxes i lletres com a tecles; fons de tecles en perspectiva (window.fonsIA).
+v4 (13-10-2026): llum. Fitxes retroil·luminades (llum de sota amb el color de cada fitxa) i encesa en aterrar (pas 1); ona de reflexos a les 14 fitxes (pas 2); barres amb punt de llum LED a la punta i encesa en arribar (passos 3 i 4); les quatre «r» s'encenen en corall i queden amb halo (pas 5); comptador «r: 4» amb halo corall i encesa a cada increment, amb la casella «r» que s'il·lumina alhora (pas 6); algunes tecles del fons retroil·luminades.
+Ritme (13-10-2026): carrega IA-S1-ritme.js al <head>; tot el moviment va més a poc a poc, pel mateix factor (LENT, a IA-S1-ritme.js).
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Del text als tokens</title><style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit;cursor:pointer}
+button:disabled{cursor:default}
+
+/* ---------- Colors de les fitxes: --tk (farciment) i --tkb (vora) ---------- */
+.c0{--tk:#DCE5FF;--tkb:#B7C8FB}
+.c1{--tk:#FFE0D3;--tkb:#F6BFA9}
+.c2{--tk:#D6F1E4;--tkb:#A9DCC4}
+.c3{--tk:#FFEDC2;--tkb:#F0D284}
+.c4{--tk:#E9E1FF;--tkb:#CDBDF7}
+
+/* ---------- Escena: cada pas és una columna centrada verticalment ---------- */
+#scene .s{height:100%;display:flex;flex-direction:column;justify-content:center}
+
+/* Fitxa de token i el seu número */
+#scene .chip{padding:10px 13px;border-radius:18px;font-size:var(--fs,52px);font-weight:520;line-height:1.15;letter-spacing:-.005em}
+#scene .sp{font-style:normal;font-weight:400;color:var(--muted)}
+#scene .tp{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}
+#scene .tid{font-size:36px;line-height:1.1;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+#scene .strip{display:flex;justify-content:space-between;align-items:flex-start;width:100%}
+
+/* Recompte: etiqueta · xifra gran · unitat */
+#scene .cnt{display:flex;align-items:baseline;gap:16px;flex:none}
+#scene .cnt .lab,#scene .cnt .u{font-size:48px;font-weight:650;line-height:1.1}
+#scene .cnt .u{font-weight:550}
+#scene .cnt .big{font-size:112px;font-variant-numeric:tabular-nums}
+#scene .cnt3{display:flex;align-items:baseline;gap:16px;width:452px;flex:none}
+#scene .bar.thick{height:40px}
+
+/* Pas 1: la frase i les primeres fitxes */
+#scene .s1{gap:64px}
+#scene .hero{font-family:var(--font-display);font-size:118px;font-weight:600;line-height:1.16;letter-spacing:-.022em}
+#scene .seg{background:var(--tk);border-radius:.14em;padding:0 .03em}
+#scene .cut{display:flex;align-items:center;gap:12px}
+#scene .cut .chip{--fs:80px;padding:10px 22px;border-radius:22px}
+#scene .cut .more{font-size:80px;font-weight:700;margin-left:12px;line-height:1}
+
+/* Pas 2: una fila de 14 fitxes amb el seu número */
+#scene .s2{gap:80px}
+#scene .src{font-family:var(--font-display);font-size:76px;font-weight:600;letter-spacing:-.018em;line-height:1.25}
+#scene .src .seg{padding:0 .05em;border-radius:.16em}
+#scene .s2 .strip{--fs:54px}
+#scene .s2 .chip{padding:14px 13px}
+
+/* Pas 3: dues files i el recompte */
+#scene .s3{gap:40px}
+#scene .band{display:flex;flex-direction:column;gap:12px}
+#scene .bh{display:flex;align-items:center;gap:32px}
+#scene .bh .bar{flex:1}
+#scene .s3 .strip{--fs:54px;justify-content:flex-start;gap:14px}
+
+/* Pas 4: dos paràgrafs */
+#scene .s4{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-content:center}
+#scene .pc{display:flex;flex-direction:column;gap:16px;padding:20px 36px 30px}
+#scene .pc p{margin:0;font-size:38px;line-height:1.36;font-weight:450}
+#scene .pc .bar{height:32px}
+
+/* Pas 5: quatre fitxes, onze lletres */
+#scene .s5{gap:40px}
+#scene .hd{display:flex;justify-content:space-between;align-items:baseline}
+#scene .cols{display:flex;justify-content:space-between;align-items:flex-start}
+#scene .g5{display:flex;flex-direction:column;align-items:stretch}
+#scene .g5 .chip{--fs:84px;padding:6px 16px;border-radius:22px}
+#scene .g5 .tid{align-self:center;margin-top:6px}
+#scene .g5 svg{align-self:center;width:36px;height:40px;margin:4px 0 6px;overflow:visible}
+#scene .lt{display:flex;gap:8px;padding:10px;border-radius:24px;background:var(--tk);border:2px solid var(--tkb)}
+#scene .cell{flex:none;width:136px;display:flex;align-items:center;justify-content:center;height:132px;border-radius:16px;
+  background:var(--surface);border:2px solid var(--line);font-size:88px;font-weight:600;line-height:1}
+#scene .cell.r{background:var(--coral);border-color:var(--coral);color:#fff}
+
+/* Pas 6: lletrejar */
+#scene .s6{gap:48px}
+#scene .top6{display:flex;justify-content:space-between;align-items:center}
+#scene .word{font-family:var(--font-display);font-size:72px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+#scene .rc{display:flex;align-items:baseline;gap:18px;padding:10px 36px 14px;border-radius:var(--radius);
+  background:var(--coral-soft);border:2px solid color-mix(in srgb,var(--coral) 30%,transparent);color:var(--coral)}
+#scene .rc .rl{font-size:72px;font-weight:700;line-height:1}
+#scene .rc .big{font-size:104px;min-width:.62em;text-align:center;display:inline-block}
+#scene .grid6{display:grid;grid-template-columns:repeat(11,1fr);gap:12px}
+#scene .box6{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:224px;padding:18px 0 14px;border-radius:20px;
+  background:var(--surface);border:2px solid var(--line);box-shadow:var(--shadow)}
+#scene .box6 b{font-size:112px;font-weight:600;line-height:1}
+#scene .box6 span{font-size:36px;font-weight:600;color:var(--muted);line-height:1}
+#scene .box6.r{background:var(--coral);border-color:var(--coral);color:#fff}
+#scene .box6.r span{color:rgba(255,255,255,.92)}
+#scene .def{font-size:44px;font-weight:500;line-height:1.15}
+
+/* ---------- v3 · Profunditat: les fitxes i les lletres són tecles ---------- */
+#scene .chip{transform-origin:50% 100%}
+#scene .tp{gap:20px}
+/* Les files de text queden de cara (inclinades semblarien cursiva); el relleu el donen les tecles */
+#scene .cut{gap:18px}
+#scene .lt{transform:perspective(1100px) rotateX(20deg);transform-origin:50% 100%;padding:10px 10px 22px;box-shadow:inset 0 4px 10px rgba(21,23,28,.12),inset 0 -1px 0 rgba(255,255,255,.6)}
+#scene .cell,#scene .box6{--edge:#D3CDBF;background:var(--surface-grad);border-color:rgba(21,23,28,.10);box-shadow:var(--key)}
+#scene .cell.r,#scene .box6.r{--edge:#9C3118;background:var(--coral);border-color:var(--coral)}
+#scene .grid6{padding-bottom:10px;transform:perspective(1600px) rotateX(18deg);transform-origin:50% 100%}
+/* Pas 4: les dues targetes, encarades com les pàgines d'un llibre obert */
+#scene .s4{perspective:1800px}
+#scene .s4 .pc:first-child{transform:rotateY(9deg);transform-origin:0 50%}
+#scene .s4 .pc:last-child{transform:rotateY(-9deg);transform-origin:100% 50%}
+#scene .rc{box-shadow:var(--hi),0 6px 0 #EBB2A2,0 16px 22px -10px rgba(21,23,28,.32)}
+
+/* Fons: un camp de tecles en perspectiva, a dalt a la dreta, que s'esvaeix cap al contingut */
+#fons{opacity:.8;filter:blur(.8px) saturate(1.08);
+  -webkit-mask-image:radial-gradient(1500px 1000px at 104% -6%,#000 26%,rgba(0,0,0,.55) 46%,transparent 74%);
+          mask-image:radial-gradient(1500px 1000px at 104% -6%,#000 26%,rgba(0,0,0,.55) 46%,transparent 74%)}
+#fons .pla{position:absolute;left:780px;top:-260px;width:1600px;height:1100px;transform-style:preserve-3d;
+  transform:rotateX(58deg) rotateZ(-26deg)}
+#fons .pla i{position:absolute;height:84px;border-radius:18px;background:var(--c);transform:translateZ(var(--z));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 12px 0 var(--e),0 30px 30px -12px rgba(21,23,28,.38)}
+
+/* ---------- v4 · Llum ----------
+   --lc = color saturat (R,G,B) de la fitxa: llum de sota, encesa i halo. Blau c0, corall c1, verd c2, ambre c3, violeta c4. */
+.c0{--lc:47,85,212}.c1{--lc:210,70,42}.c2{--lc:22,128,94}.c3{--lc:201,133,18}.c4{--lc:106,79,214}
+/* Les fitxes són tecles retroil·luminades: llum del seu color damunt la taula i una mica de llum de dins */
+#scene .chip{box-shadow:0 22px 30px -6px rgba(var(--lc,47,85,212),.46),inset 0 2px 0 rgba(255,255,255,.8),inset 0 -2px 0 rgba(21,23,28,.05),var(--inner-glow),0 9px 0 var(--edge,#D3CDBF),0 11px 0 rgba(21,23,28,.10),0 24px 26px -12px rgba(21,23,28,.30)}
+/* Barres: cos amb volum, halo blau a sota i un punt de llum LED a la punta (s'encén en arribar) */
+#scene .bar{overflow:visible}
+#scene .bar.thick{--led:24px}
+#scene .bar>i{background:linear-gradient(180deg,#7592F2 0%,var(--blue) 48%,#2443B8 100%);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.36),inset 0 -4px 0 rgba(0,0,0,.14),0 0 16px 1px rgba(47,85,212,.40),0 12px 22px -8px rgba(47,85,212,.62)}
+#scene .bar>i::after{content:"";position:absolute;right:7px;top:50%;width:var(--led,20px);height:var(--led,20px);margin-top:calc(var(--led,20px) / -2);border-radius:50%;
+  background:radial-gradient(circle,#fff 0 40%,#D2DCFF 68%,rgba(210,220,255,0) 100%);
+  box-shadow:0 0 12px 3px rgba(255,255,255,.88),0 0 28px 8px rgba(47,85,212,.64),0 0 62px 16px rgba(47,85,212,.26)}
+body:not([data-dir="back"]) #scene .bar>i::after{animation:tk-led .45s var(--ease) var(--ld,600ms) backwards}
+@keyframes tk-led{0%{opacity:0;transform:scale(.35)}60%{opacity:1;transform:scale(1.4)}100%{opacity:1;transform:scale(1)}}
+/* Pas 5 i 6: les «r» són tecles corall il·luminades per dins, amb halo (el halo es fa visible quan la tecla ja és corall) */
+#scene .cell.r,#scene .box6.r{position:relative;box-shadow:var(--key),var(--inner-glow)}
+#scene .cell.r::after,#scene .box6.r::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  box-shadow:0 0 18px 4px rgba(210,70,42,.70),0 0 50px 12px rgba(210,70,42,.34)}
+body:not([data-dir="back"]) #scene .cell.r::after,body:not([data-dir="back"]) #scene .box6.r::after{animation:tk-halo .6s var(--ease) var(--hd,900ms) backwards}
+@keyframes tk-halo{from{opacity:0}to{opacity:1}}
+/* Pas 5: fletxes com a neó fi del color de la fitxa; safata amb una mica de llum de dins */
+#scene .g5 svg path.stroke{stroke:rgb(var(--lc));stroke-opacity:.92;stroke-width:5px;filter:drop-shadow(0 0 5px rgba(var(--lc),.7))}
+#scene .lt{box-shadow:inset 0 4px 10px rgba(21,23,28,.12),inset 0 -1px 0 rgba(255,255,255,.6),inset 0 0 34px rgba(var(--lc,47,85,212),.20)}
+/* Pas 6: el comptador de «r» és una peça emissora (halo corall fix) */
+#scene .rc{box-shadow:var(--hi),0 6px 0 #EBB2A2,0 16px 22px -10px rgba(21,23,28,.32),0 0 22px 4px rgba(210,70,42,.50),0 0 64px 14px rgba(210,70,42,.24)}
+/* Fons: unes quantes tecles retroil·luminades */
+#fons .pla i.lit{box-shadow:inset 0 2px 0 rgba(255,255,255,.7),inset 0 0 18px rgba(255,255,255,.45),0 12px 0 var(--e),0 0 34px 8px rgba(var(--gl),.72),0 0 96px 26px rgba(var(--gl),.34),0 30px 30px -12px rgba(21,23,28,.30)}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"><script src="IA-S1-ritme.js"></script></head><body data-animation="tokens"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Espai / Av Pàg / Re Pàg     Inici: reinicia     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "Del text als tokens",
+  "sentence": "A l'escola d'adults aprenem a qualsevol edat.",
+  "english": "At adult school we learn at any age.",
+  "openingLines": [
+    "A l'escola d'adults",
+    "aprenem a qualsevol edat."
+  ],
+  "continuation": "…",
+  "paragraphCa": "A l'escola d'adults aprenem a qualsevol edat. Compartim experiències i descobrim noves idees. Practiquem amb exemples propers a la vida quotidiana. Aprendre plegats ens ajuda a continuar avançant.",
+  "paragraphEn": "At adult school we learn at any age. We share experiences and discover new ideas. We practise with examples close to everyday life. Learning together helps us keep moving forward.",
+  "caTokens": [
+    {
+      "text": "A",
+      "id": 32
+    },
+    {
+      "text": " l",
+      "id": 305
+    },
+    {
+      "text": "'es",
+      "id": 33405
+    },
+    {
+      "text": "cola",
+      "id": 34522
+    },
+    {
+      "text": " d",
+      "id": 272
+    },
+    {
+      "text": "'ad",
+      "id": 36162
+    },
+    {
+      "text": "ults",
+      "id": 129476
+    },
+    {
+      "text": " apr",
+      "id": 7795
+    },
+    {
+      "text": "enem",
+      "id": 142413
+    },
+    {
+      "text": " a",
+      "id": 261
+    },
+    {
+      "text": " qualsevol",
+      "id": 150755
+    },
+    {
+      "text": " ed",
+      "id": 1648
+    },
+    {
+      "text": "at",
+      "id": 266
+    },
+    {
+      "text": ".",
+      "id": 13
+    }
+  ],
+  "enTokens": [
+    {
+      "text": "At",
+      "id": 2243
+    },
+    {
+      "text": " adult",
+      "id": 8680
+    },
+    {
+      "text": " school",
+      "id": 3474
+    },
+    {
+      "text": " we",
+      "id": 581
+    },
+    {
+      "text": " learn",
+      "id": 4484
+    },
+    {
+      "text": " at",
+      "id": 540
+    },
+    {
+      "text": " any",
+      "id": 1062
+    },
+    {
+      "text": " age",
+      "id": 5744
+    },
+    {
+      "text": ".",
+      "id": 13
+    }
+  ],
+  "wordTokens": [
+    {
+      "text": "fer",
+      "id": 855
+    },
+    {
+      "text": "roc",
+      "id": 27212
+    },
+    {
+      "text": "arr",
+      "id": 1614
+    },
+    {
+      "text": "il",
+      "id": 311
+    }
+  ],
+  "catalan": "Català",
+  "englishLabel": "Anglès",
+  "token": "token",
+  "tokens": "tokens",
+  "start": "El text es divideix en fragments: els tokens.",
+  "numbers": "El model no veu lletres: veu números.",
+  "spaces": "El punt · fa visible l’espai enganxat al token.",
+  "compare": "La mateixa idea pot ocupar un nombre diferent de tokens.",
+  "countSentence": "Català: 14 tokens · Anglès: 9 tokens",
+  "countParagraph": "Català: 50 tokens · Anglès: 34 tokens",
+  "more": "En aquests exemples, el català ocupa més tokens.",
+  "cost": "Hi cap menys text; amb preu per token, costa més.",
+  "scope": "Recompte del text sol, amb o200k_base; no inclou missatges del xat.",
+  "letters": "11 lletres",
+  "word": "ferrocarril",
+  "pieces": "4 tokens",
+  "countHard": "Comptar lletres li costa: no les veu una per una.",
+  "reasoning": "Els models que raonen solen resoldre-ho lletrejant pas a pas.",
+  "spelling": "Lletrejar: separar cada lletra abans de comptar-la.",
+  "notGuarantee": "Lletrejar pot ajudar; no garanteix una resposta correcta.",
+  "lettersArray": [
+    "f",
+    "e",
+    "r",
+    "r",
+    "o",
+    "c",
+    "a",
+    "r",
+    "r",
+    "i",
+    "l"
+  ],
+  "rCount": "r:",
+  "verified": "Tokens reals: o200k_base",
+  "stepTitles": [
+    "El text",
+    "Els tokens i els seus números",
+    "La mateixa idea en dues llengües",
+    "Un paràgraf en dues llengües",
+    "Una paraula, onze lletres",
+    "Lletrejar pas a pas"
+  ],
+  "zero": "",
+  "unitSeparator": " · "
+};
+
+/* ---------- Infraestructura comuna (navegació, escala, pantalla completa) ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const EASE = 'cubic-bezier(.2,.8,.2,1)';
+let current=0, totalSteps=1, drawStep, generation=0, fwd=true;
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Animació amb fill:'backwards': abans del retard es veu el primer fotograma i, en acabar, l'estat final és el de l'estil. */
+function mo(el,frames,options={}){if(!el||!fwd)return null;return el.animate(frames,{duration:560,easing:EASE,fill:'backwards',...options});}
+function rise(els,{dy=20,step=70,delay=0,dur=560,dx=0}={}){els.forEach((el,k)=>mo(el,[{opacity:0,transform:`translate(${dx}px,${dy}px)`},{opacity:1,transform:'none'}],{delay:delay+k*step,duration:dur}));}
+function countUp(el,to,{delay=0,dur=800}={}){
+ if(!el)return;
+ if(!fwd){el.textContent=to;return;}
+ const gen=generation,t0=performance.now()+delay;
+ el.textContent=0;
+ (function tick(now){
+  if(gen!==generation)return;
+  const p=Math.min(1,Math.max(0,(now-t0)/dur)),e=1-Math.pow(1-p,3);
+  el.textContent=Math.round(to*e);
+  if(p<1)requestAnimationFrame(tick);else el.textContent=to;
+ })(performance.now());
+}
+function later(fn,ms){const gen=generation;setTimeout(()=>{if(gen===generation)fn();},ms);}
+function show(html,caption='',note='',stamp=''){
+ $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+ if(caption)mo($('#caption'),[{opacity:0,transform:'translateY(12px)'},{opacity:1,transform:'none'}],{duration:500});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* ---------- Peces de l'escena ---------- */
+const CA=TEXTOS.caTokens, EN=TEXTOS.enTokens, WD=TEXTOS.wordTokens, LET=TEXTOS.lettersArray;
+const R_TOTAL=LET.filter(l=>l==='r').length;
+/* Els espais (U+0020) es mostren com un punt mitjà discret. */
+const spaced=t=>esc(t).replace(/ /g,'<i class="sp">·</i>');
+const chip=(t,k,extra='')=>`<span class="chip c${k%5} ${extra}">${spaced(t.text)}</span>`;
+const pair=(t,k)=>`<div class="tp">${chip(t,k)}<span class="tid">${t.id}</span></div>`;
+const strip=data=>`<div class="strip">${data.map(pair).join('')}</div>`;
+/* «Català: 14 tokens» → etiqueta, xifra, unitat. La xifra surt gran, el text ve de TEXTOS. */
+function parts(s){const m=String(s).match(/^(.*?)\s*(\d+)\s*(.*)$/);return m?{lab:m[1],n:+m[2],u:m[3]}:{lab:s,n:null,u:''};}
+const countParts=s=>s.split(TEXTOS.unitSeparator).map(parts);
+function cnt(p,cls='cnt'){
+ const big=`<b class="big" data-to="${p.n}">${p.n}</b>`;
+ if(cls==='cnt3')return `<div class="cnt3"><span class="lab">${esc(p.lab)}</span>${big}<span class="u">${esc(p.u)}</span></div>`;
+ return `<div class="cnt">${p.lab?`<span class="lab">${esc(p.lab)}</span>`:''}${big}<span class="u">${esc(p.u)}</span></div>`;
+}
+/* Xifres que pugen, barres que creixen des de 0 */
+function runCounts(delay=150){$$('#scene .big[data-to]').forEach((b,k)=>countUp(b,+b.dataset.to,{delay:delay+k*90,dur:800}));}
+/* v4 · Llum: encesa de llegada (CSS, solo al avanzar) y color de la fitxa */
+const LL=['blue','coral','green','amber','violet'];
+function enc(el,color,d){if(!el)return;el.setAttribute('data-encen','');el.setAttribute('data-llum',color);el.style.setProperty('--d',d+'ms');}
+function growBars(delay=200){$$('#scene .bar>i').forEach((b,k)=>{const d=delay+k*90;mo(b,[{width:'0%'},{width:getComputedStyle(b).width}],{delay:d,duration:800});
+  /* el LED de la punta se enciende cuando la barra casi ha llegado; la barra entera da un destello azul */
+  b.style.setProperty('--ld',(d+520)+'ms');enc(b.parentElement,'blue',d+700);});}
+
+function renderStep(i,prev){
+ fwd=!reduced()&&(prev==null||prev<=i);
+
+ /* 1 · La frase i les primeres fitxes */
+ if(i===0){
+  const head=CA.slice(0,4), pre=head.map(t=>t.text).join('');
+  const l0=TEXTOS.openingLines[0], cut=l0.startsWith(pre);
+  const line0=cut?head.map((t,k)=>`<span class="seg c${k%5}">${esc(t.text)}</span>`).join('')+esc(l0.slice(pre.length)):esc(l0);
+  const rest=TEXTOS.openingLines.slice(1).map(l=>`<div class="hl">${esc(l)}</div>`).join('');
+  show(`<div class="s s1"><div class="hero"><div class="hl">${line0}</div>${rest}</div><div class="cut">${head.map((t,k)=>chip(t,k)).join('')}<span class="more">${esc(TEXTOS.continuation)}</span></div></div>`,TEXTOS.start,'',TEXTOS.verified);
+  $$('.hl').forEach((el,k)=>mo(el,[{opacity:0,transform:'translateY(24px)'},{opacity:1,transform:'none'}],{delay:k*110,duration:600}));
+  const chips=$$('.cut .chip'),segs=$$('.seg');
+  chips.forEach((c,k)=>{
+   const d=520+k*140;
+   mo(c,[{opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'},{opacity:1,transform:'none'}],{delay:d,duration:640});
+   enc(c,LL[k%5],d+380);
+   if(segs[k])mo(segs[k],[{backgroundColor:'rgba(255,255,255,0)'},{backgroundColor:getComputedStyle(segs[k]).backgroundColor}],{delay:d,duration:420});
+  });
+  mo($('.cut .more'),[{opacity:0},{opacity:1}],{delay:520+chips.length*140,duration:400});
+ }
+
+ /* 2 · Els tokens i els seus números */
+ if(i===1){
+  /* La frase surt pintada amb el mateix color que la fitxa de cada tros. */
+  const whole=CA.map(t=>t.text).join('')===TEXTOS.sentence;
+  const src=whole?CA.map((t,k)=>`<span class="seg c${k%5}">${esc(t.text)}</span>`).join(''):esc(TEXTOS.sentence);
+  show(`<div class="s s2"><div class="src">${src}</div>${strip(CA)}</div>`,TEXTOS.numbers,TEXTOS.spaces,TEXTOS.verified);
+  const tp=$$('.tp'),segs=$$('.src .seg');
+  tp.forEach((p,k)=>{
+   mo(p.querySelector('.chip'),[{opacity:0,transform:'perspective(700px) rotateX(-78deg) translateY(-14px)'},{opacity:1,transform:'none'}],{delay:k*55,duration:620});
+   mo(p.querySelector('.tid'),[{opacity:0,transform:'translateY(-10px)'},{opacity:1,transform:'none'}],{delay:380+k*40,duration:420});
+   const ch=p.querySelector('.chip');ch.setAttribute('data-reflex','');ch.style.setProperty('--dr',(700+k*55)+'ms');
+   if(k>=4&&segs[k])mo(segs[k],[{backgroundColor:'rgba(255,255,255,0)'},{backgroundColor:getComputedStyle(segs[k]).backgroundColor}],{delay:k*55,duration:420});
+  });
+ }
+
+ /* 3 · La mateixa idea en dues llengües */
+ if(i===2){
+  const c=countParts(TEXTOS.countSentence), max=Math.max(...c.map(p=>p.n));
+  const band=(name,data,p,k)=>`<div class="band"><div class="bh">${cnt(p,'cnt3')}<div class="bar thick"><i style="--w:${(p.n/max*100).toFixed(2)}%"></i></div></div>${strip(data)}</div>`;
+  show(`<div class="s s3">${band(TEXTOS.catalan,CA,c[0],0)}${band(TEXTOS.englishLabel,EN,c[1],1)}</div>`,TEXTOS.compare,TEXTOS.scope,TEXTOS.verified);
+  const bands=$$('.band');
+  rise($$('.bh'),{dy:16,step:260,delay:60});
+  runCounts(120);growBars(200);
+  rise(bands[1].querySelectorAll('.tp'),{dy:20,step:60,delay:420});
+ }
+
+ /* 4 · Un paràgraf en dues llengües */
+ if(i===3){
+  const c=countParts(TEXTOS.countParagraph), max=Math.max(...c.map(p=>p.n));
+  const card=(p,text)=>`<article class="card pc">${cnt(p)}<div class="bar"><i style="--w:${(p.n/max*100).toFixed(2)}%"></i></div><p>${esc(text)}</p></article>`;
+  show(`<div class="s4 s">${card(c[0],TEXTOS.paragraphCa)}${card(c[1],TEXTOS.paragraphEn)}</div>`,TEXTOS.more,TEXTOS.cost,TEXTOS.verified);
+  $$('.pc').forEach((el,k)=>mo(el,[{opacity:0,translate:`${k?40:-40}px 0`},{opacity:1,translate:'0 0'}],{delay:k*90,duration:640}));
+  runCounts(260);growBars(340);
+ }
+
+ /* 5 · Una paraula, onze lletres: cada lletra sota el seu token */
+ if(i===4){
+  let at=0;
+  const cols=WD.map((t,k)=>{
+   const ls=LET.slice(at,at+t.text.length);at+=t.text.length;
+   return `<div class="g5 c${k%5}">${chip(t,k)}<span class="tid">${t.id}</span><svg viewBox="0 0 36 40" aria-hidden="true"><path class="stroke" pathLength="1" d="M18 3V34M7 23L18 35L29 23"/></svg><div class="lt">${ls.map(l=>`<span class="cell${l==='r'?' r':''}">${esc(l)}</span>`).join('')}</div></div>`;
+  }).join('');
+  show(`<div class="s s5"><div class="hd">${cnt(parts(TEXTOS.pieces))}${cnt(parts(TEXTOS.letters))}</div><div class="cols">${cols}</div></div>`,TEXTOS.countHard,'',TEXTOS.verified);
+  rise($$('.hd .cnt'),{dy:16,step:420,delay:0});
+  const g=$$('.g5');
+  g.forEach((el,k)=>{
+   mo(el.querySelector('.chip'),[{opacity:0,transform:'translateY(-22px)'},{opacity:1,transform:'none'}],{delay:120+k*90});
+   mo(el.querySelector('.tid'),[{opacity:0},{opacity:1}],{delay:360+k*90,duration:420});
+   mo(el.querySelector('svg path'),[{strokeDasharray:1,strokeDashoffset:1},{strokeDasharray:1,strokeDashoffset:0}],{delay:480+k*90,duration:420});
+   mo(el.querySelector('.lt'),[{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'none'}],{delay:560+k*90,duration:520});
+  });
+  $$('.cell.r').forEach((el,k)=>{enc(el,'coral',900+k*110+160);el.style.setProperty('--hd',(900+k*110+120)+'ms');});
+  $$('.cell.r').forEach((el,k)=>mo(el,[{backgroundColor:'#fff',borderColor:'rgba(21,23,28,.12)',color:'#15171C',transform:'scale(1)'},{backgroundColor:'#D2462A',borderColor:'#D2462A',color:'#fff',transform:'scale(1.12)',offset:.6},{backgroundColor:'#D2462A',borderColor:'#D2462A',color:'#fff',transform:'scale(1)'}],{delay:900+k*110,duration:520}));
+ }
+
+ /* 6 · Lletrejar pas a pas: onze caselles i el comptador de «r» */
+ if(i===5){
+  show(`<div class="s s6"><div class="top6"><div class="word">${esc(TEXTOS.word)}</div><div class="rc"><span class="rl">${esc(TEXTOS.rCount)}</span><b class="big" id="rn">${R_TOTAL}</b></div></div><div class="grid6">${LET.map((l,k)=>`<div class="box6${l==='r'?' r':''}"><b>${esc(l)}</b><span>${k+1}</span></div>`).join('')}</div><div class="def">${esc(TEXTOS.spelling)}</div></div>`,TEXTOS.reasoning,TEXTOS.notGuarantee,TEXTOS.verified);
+  const boxes=$$('.box6'),rn=$('#rn');
+  boxes.forEach((b,k)=>{mo(b,[{opacity:0,transform:'translateY(22px)'},{opacity:1,transform:'none'}],{delay:200+k*85,duration:520});
+   if(LET[k]==='r'){enc(b,'coral',200+k*85+380);b.style.setProperty('--hd',(200+k*85+340)+'ms');}});
+  mo($('.rc'),[{opacity:0,transform:'translateY(-14px)'},{opacity:1,transform:'none'}],{delay:0,duration:500});
+  mo($('.def'),[{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'none'}],{delay:200+boxes.length*85,duration:500});
+  if(fwd){
+   rn.textContent=0;let n=0;
+   LET.forEach((l,k)=>{if(l!=='r')return;
+    /* la casilla «r» aterriza, se enciende y el contador sube a la vez (destello coral en el contador) */
+    later(()=>{n++;rn.textContent=n;mo(rn,[{transform:'scale(1.28)'},{transform:'scale(1)'}],{duration:380});
+     mo($('.rc'),[{filter:'drop-shadow(0 0 0 rgba(210,70,42,0)) brightness(1)'},{filter:'drop-shadow(0 0 22px rgba(210,70,42,.95)) brightness(1.12)',offset:.3},{filter:'drop-shadow(0 0 0 rgba(210,70,42,0)) brightness(1)'}],{duration:700,easing:'ease-out'});},200+k*85+420);});
+  }
+ }
+}
+/* Fons temàtic (el crida IA-S1-comu.js): files de tecles de mides diferents, com tokens, sobre un pla inclinat.
+   Unes quantes tecles s'aixequen (translateZ) per donar relleu. Sense text. */
+window.fonsIA=function(capa){
+ const C=[['#DCE5FF','#9FB4F1'],['#FFE0D3','#E8A88E'],['#D6F1E4','#8DCBAD'],['#FFEDC2','#DDB963'],['#E9E1FF','#B7A4EE']];
+ const W=[104,150,196,236,132,176];
+ let h='<div class="pla">',k=0;
+ for(let r=0;r<11;r++){
+  let x=(r%3)*46;
+  while(x<1560){
+   const w=W[(r*5+k*7)%W.length],c=C[(r+k*3)%5],z=(r*7+k*13)%9===0?96:((r+k)%5===0?40:((r*3+k)%7===0?18:0));
+   const GL=['47,85,212','210,70,42','22,128,94','201,133,18','106,79,214'];
+   const lit=(r*3+k*5)%6===0;
+   h+=`<i${lit?' class="lit"':''} style="left:${x}px;top:${r*100}px;width:${w}px;--c:${c[0]};--e:${c[1]};--z:${z}px${lit?';--gl:'+GL[(r+k*3)%5]:''}"></i>`;
+   x+=w+20;k++;
+  }
+ }
+ capa.innerHTML=h+'</div>';
+};
+boot(6,renderStep);
+</script><script src="IA-S1-comu.js"></script></body></html>

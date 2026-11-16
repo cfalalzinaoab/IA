@@ -1,0 +1,234 @@
+/* IA-S1 · estil comú (v2, 13-10-2026)
+   Es carrega DESPRÉS del <style> de cada animació, així que mana sobre el que hi ha.
+   Escenari fix de 1920×1080 que s'escala a la pantalla. Lletra mínima: 32 px.
+   No ho toqueu des de les animacions: el que sigui propi d'una peça va al seu <style>. */
+
+:root{
+  --bg:#F3F0E8;            /* paper càlid: al projector no enlluerna */
+  --surface:#FFFFFF;
+  --ink:#15171C;
+  --muted:#5F5A50;         /* 5,7:1 sobre --bg */
+  --line:rgba(21,23,28,.12);
+  --line-strong:rgba(21,23,28,.28);
+
+  /* Colors amb significat (iguals a totes les peces) */
+  --blue:#2F55D4;   --blue-soft:#E4EAFF;    /* model, dades, el que s'explica */
+  --coral:#D2462A;  --coral-soft:#FFE5DC;   /* el triat, l'atenció, l'alerta */
+  --green:#16805E;  --green-soft:#DCF2E8;   /* comprovat, correcte, font */
+  --amber:#C98512;  --amber-soft:#FFF0CF;   /* destacat, matís */
+  --violet:#6A4FD6; --violet-soft:#ECE6FF;  /* analogia, idea */
+
+  /* Accent del bloc del guió (B, C, D, E) */
+  --accent:var(--blue); --accent-soft:var(--blue-soft);
+
+  --radius:22px; --radius-sm:14px;
+  --shadow:0 1px 0 rgba(21,23,28,.05),0 12px 32px -10px rgba(21,23,28,.18);
+  --shadow-lift:0 2px 0 rgba(21,23,28,.05),0 22px 44px -14px rgba(21,23,28,.26);
+  --ease:cubic-bezier(.2,.8,.2,1);
+
+  --font:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-display:"Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+body[data-animation="tokens"],body[data-animation="vectors"],body[data-animation="prediccio"]{--accent:var(--blue);--accent-soft:var(--blue-soft)}
+body[data-animation="atencio"],body[data-animation="entrenament"],body[data-animation="origens"]{--accent:var(--green);--accent-soft:var(--green-soft)}
+body[data-animation="errors"]{--accent:var(--coral);--accent-soft:var(--coral-soft)}
+body[data-animation="atractors"]{--accent:var(--violet);--accent-soft:var(--violet-soft)}
+
+html,body{background:#E9E5DB;color:var(--ink)}
+body{font-family:var(--font);font-size:40px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+
+/* ---------- Escenari: fora els adorns, un fons net amb un toc del color del bloc ---------- */
+#stage::before,#stage::after,
+body[data-animation] #stage::before,body[data-animation] #stage::after{content:none!important;background:none!important;display:none!important}
+body[data-animation] #stage{
+  background:
+    radial-gradient(1200px 700px at 0% 0%,color-mix(in srgb,var(--accent) 7%,transparent),transparent 70%),
+    radial-gradient(900px 600px at 100% 100%,rgba(255,255,255,.7),transparent 70%),
+    var(--bg)!important;
+}
+
+/* ---------- Capçalera ---------- */
+#course{position:absolute;top:40px;left:72px;display:flex;align-items:center;gap:18px;
+  font-size:32px;font-weight:600;letter-spacing:.02em;color:var(--muted)}
+#course::before{content:attr(data-piece);display:inline-flex;align-items:center;justify-content:center;
+  min-width:84px;height:48px;padding:0 16px;border-radius:999px;background:var(--accent);color:#fff;
+  font-weight:700;letter-spacing:.04em}
+#course:not([data-piece])::before{display:none}
+#stamp{position:absolute;top:38px;right:72px;font-size:32px;font-weight:600;color:var(--muted);
+  padding:4px 20px;border:2px solid var(--line-strong);border-radius:999px;background:rgba(255,255,255,.55)}
+#stamp:empty{display:none}
+h1,#title{position:absolute;left:72px;top:104px;margin:0;font-family:var(--font-display);
+  font-size:74px;line-height:1.05;font-weight:700;letter-spacing:-.022em;color:var(--ink);text-shadow:none}
+
+/* ---------- Zona de l'animació ---------- */
+#scene{position:absolute;left:72px;top:212px;width:1776px;height:612px;font-size:40px}
+
+/* ---------- Peu: la frase clau, la nota i la navegació discreta ---------- */
+#caption{position:absolute;left:72px;top:846px;width:1776px;height:104px;display:flex;align-items:center;
+  padding-left:38px;font-size:50px;font-weight:700;line-height:1.12;letter-spacing:-.01em;color:var(--ink)}
+#caption::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:10px;border-radius:6px;background:var(--accent)}
+#caption:empty::before{display:none}
+#note{position:absolute;left:110px;top:952px;width:1300px;font-size:32px;line-height:1.15;color:var(--muted)}
+
+footer{position:absolute;left:72px;right:72px;bottom:18px;height:56px;display:flex;align-items:center;gap:14px;font-size:32px}
+#help{display:none}
+#index{position:absolute;left:0;color:var(--muted);text-decoration:none;font-weight:600;padding:6px 0}
+#index:hover{color:var(--ink);text-decoration:underline}
+#dots{display:flex;gap:10px;align-items:center;margin-right:18px}
+#dots i{display:block;width:16px;height:16px;border-radius:999px;background:var(--line-strong);transition:width .35s var(--ease),background .35s var(--ease)}
+#dots i.done{background:color-mix(in srgb,var(--accent) 45%,transparent)}
+#dots i.on{width:44px;background:var(--accent)}
+#counter{font-size:32px;min-width:96px;text-align:right;font-weight:600;color:var(--muted)}
+footer button{width:56px;height:56px;min-width:0;min-height:0;padding:0;border:0;border-radius:999px;
+  background:rgba(21,23,28,.06);background-image:none;box-shadow:none;color:var(--muted);font-size:32px;line-height:1}
+footer button:hover:not(:disabled){background:rgba(21,23,28,.12);color:var(--ink)}
+footer button:disabled{opacity:.35;background:rgba(21,23,28,.04)}
+button:focus-visible,a:focus-visible{outline:4px solid var(--accent);outline-offset:4px}
+footer{justify-content:flex-end}
+
+/* ---------- Components per a les escenes ----------
+   .card          targeta blanca amb ombra suau (substitueix els requadres de vora negra)
+   .card.tint-*   targeta amb fons del color (blue, coral, green, amber, violet)
+   .card.edge-*   targeta blanca amb vora de color de 4 px
+   .card.dashed   el mateix, amb vora discontínua: «simulat», «inventat», «pendent»
+   .chip          peça petita (un token, una etiqueta); .chip.c0…c4 colors pastel rotatius
+   .kicker        etiqueta curta en majúscules sobre un bloc (32 px)
+   .big           xifra o paraula gran (88 px)
+   .bar > i       barra de probabilitat (pista grisa, farciment de color amb --w)
+   .muted         text secundari
+*/
+.card{background:var(--surface);border:2px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px 34px}
+.card.tint-blue{background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 30%,transparent)}
+.card.tint-coral{background:var(--coral-soft);border-color:color-mix(in srgb,var(--coral) 30%,transparent)}
+.card.tint-green{background:var(--green-soft);border-color:color-mix(in srgb,var(--green) 30%,transparent)}
+.card.tint-amber{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 35%,transparent)}
+.card.tint-violet{background:var(--violet-soft);border-color:color-mix(in srgb,var(--violet) 30%,transparent)}
+.card.edge-blue{border:4px solid var(--blue)}.card.edge-coral{border:4px solid var(--coral)}.card.edge-green{border:4px solid var(--green)}
+.card.edge-amber{border:4px solid var(--amber)}.card.edge-violet{border:4px solid var(--violet)}
+.card.dashed{border-style:dashed}
+.chip{display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);padding:10px 18px;
+  font-size:44px;line-height:1.15;background:var(--surface);border:2px solid var(--line);white-space:pre}
+.chip.c0{background:#DCE5FF;border-color:#B7C8FB}.chip.c1{background:#FFE0D3;border-color:#F6BFA9}
+.chip.c2{background:#D6F1E4;border-color:#A9DCC4}.chip.c3{background:#FFEDC2;border-color:#F0D284}
+.chip.c4{background:#E9E1FF;border-color:#CDBDF7}
+.kicker{font-size:32px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.big{font-family:var(--font-display);font-size:88px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.muted{color:var(--muted)}
+.bar{position:relative;height:30px;border-radius:999px;background:rgba(21,23,28,.08);overflow:hidden}
+.bar>i{position:absolute;inset:0 auto 0 0;width:var(--w,0%);border-radius:999px;background:var(--blue);transition:width .7s var(--ease)}
+.bar.coral>i{background:var(--coral)}.bar.green>i{background:var(--green)}.bar.amber>i{background:var(--amber)}.bar.violet>i{background:var(--violet)}
+
+/* Línies i fletxes en SVG: traç arrodonit i gris tinta, mai negre pur */
+svg text{font-family:var(--font)}
+svg .stroke{stroke:var(--ink);stroke-opacity:.55;stroke-width:4px;stroke-linecap:round;stroke-linejoin:round;fill:none}
+
+/* ---------- Valors per defecte més nets per als requadres antics (mentre es refan) ---------- */
+.panel{border:2px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:26px 30px}
+#scene .panel{background-image:none;box-shadow:var(--shadow)}
+.pill{border:2px solid var(--line);border-radius:999px;background:var(--surface)}
+#scene .pill{background-image:none;box-shadow:var(--shadow)}
+.panel.blue,.pill.blue{border:4px solid var(--blue)}
+.panel.green,.pill.green{border:4px solid var(--green)}
+.panel.orange,.pill.orange{border:4px dashed var(--coral)}
+
+/* ---------- v3 · Profunditat ----------
+   Una sola llum, de dalt a l'esquerra. Les superfícies tenen gruix i dues ombres (contacte i ambient);
+   les fitxes són tecles; el fons (#fons) és un espai en perspectiva, desenfocat i sempre darrere del contingut.
+   --edge: color del cantell inferior d'una tecla. */
+:root{
+  --surface-grad:linear-gradient(180deg,#FFFFFF 0%,#FAF8F3 100%);
+  --hi:inset 0 2px 0 rgba(255,255,255,.85);
+  --shadow:inset 0 2px 0 rgba(255,255,255,.9),0 1px 2px rgba(21,23,28,.10),0 12px 24px -10px rgba(21,23,28,.24),0 34px 64px -30px rgba(21,23,28,.32);
+  --shadow-lift:inset 0 2px 0 rgba(255,255,255,.9),0 2px 4px rgba(21,23,28,.10),0 20px 36px -12px rgba(21,23,28,.30),0 48px 84px -32px rgba(21,23,28,.36);
+  --key:inset 0 2px 0 rgba(255,255,255,.8),inset 0 -2px 0 rgba(21,23,28,.05),0 9px 0 var(--edge,#D3CDBF),0 11px 0 rgba(21,23,28,.10),0 24px 26px -12px rgba(21,23,28,.42);
+}
+body[data-animation] #stage{
+  background:
+    radial-gradient(1500px 760px at 46% -16%,rgba(255,255,255,.9),transparent 62%),
+    radial-gradient(1200px 700px at 0% 0%,color-mix(in srgb,var(--accent) 8%,transparent),transparent 70%),
+    radial-gradient(1700px 820px at 50% 128%,rgba(21,23,28,.12),transparent 66%),
+    var(--bg)!important;
+}
+.card{background:var(--surface-grad);box-shadow:var(--shadow)}
+.card.tint-blue,.card.tint-coral,.card.tint-green,.card.tint-amber,.card.tint-violet{box-shadow:var(--hi),0 1px 2px rgba(21,23,28,.08),0 12px 24px -12px rgba(21,23,28,.22)}
+.chip{box-shadow:var(--key)}
+.chip.c0{--edge:#9FB4F1}.chip.c1{--edge:#E8A88E}.chip.c2{--edge:#8DCBAD}.chip.c3{--edge:#DDB963}.chip.c4{--edge:#B7A4EE}
+.bar{box-shadow:inset 0 3px 5px rgba(21,23,28,.14),inset 0 -1px 0 rgba(255,255,255,.7)}
+.bar>i{box-shadow:inset 0 3px 0 rgba(255,255,255,.32),inset 0 -4px 0 rgba(0,0,0,.14)}
+#course::before{box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 color-mix(in srgb,var(--accent) 70%,#000),0 10px 16px -8px rgba(21,23,28,.4)}
+#stamp{box-shadow:inset 0 2px 0 rgba(255,255,255,.8),0 6px 14px -8px rgba(21,23,28,.25)}
+footer button{box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 rgba(21,23,28,.10)}
+
+/* El fons: capa temàtica de cada peça (window.fonsIA la dibuixa dins de #fons).
+   No porta text. Es mou una mica a cada pas (--p = pas − 1), com si la càmera avancés. */
+#fons{position:absolute;inset:0;overflow:hidden;pointer-events:none;perspective:1800px;perspective-origin:72% 18%}
+#fons .capa{position:absolute;inset:0;transform-style:preserve-3d;
+  transform:translate3d(calc(var(--p,0) * -22px),calc(var(--p,0) * 7px),0);transition:transform 1.2s var(--ease)}
+
+/* ---------- v4 · Llum ----------
+   El que és actiu emet llum, amb el color del seu significat: el triat (corall), el model (blau),
+   el comprovat (verd). Halo fix = --glow-*; encesa d'una sola vegada en entrar = [data-encen].
+   La capa #llum (la crea IA-S1-comu.js) posa la llum de dalt a l'esquerra: resplendor, raigs i pols lluminosa.
+   Res en bucle. En retrocedir (body[data-dir="back"]) o amb moviment reduït, només l'estat final. */
+:root{
+  --glow-blue:0 0 18px 2px rgba(47,85,212,.34),0 0 54px 10px rgba(47,85,212,.16);
+  --glow-coral:0 0 18px 2px rgba(210,70,42,.42),0 0 54px 10px rgba(210,70,42,.20);
+  --glow-green:0 0 18px 2px rgba(22,128,94,.36),0 0 54px 10px rgba(22,128,94,.17);
+  --glow-amber:0 0 18px 2px rgba(201,133,18,.40),0 0 54px 10px rgba(201,133,18,.19);
+  --glow-violet:0 0 18px 2px rgba(106,79,214,.38),0 0 54px 10px rgba(106,79,214,.18);
+  --glow-sm-blue:0 0 10px 1px rgba(47,85,212,.40),0 0 26px 4px rgba(47,85,212,.18);
+  --glow-sm-coral:0 0 10px 1px rgba(210,70,42,.46),0 0 26px 4px rgba(210,70,42,.20);
+  --glow-sm-green:0 0 10px 1px rgba(22,128,94,.42),0 0 26px 4px rgba(22,128,94,.18);
+  --glow-sm-amber:0 0 10px 1px rgba(201,133,18,.46),0 0 26px 4px rgba(201,133,18,.20);
+  --glow-sm-violet:0 0 10px 1px rgba(106,79,214,.44),0 0 26px 4px rgba(106,79,214,.19);
+  /* llum de dins: la peça sembla il·luminada per darrere */
+  --inner-glow:inset 0 0 22px rgba(255,255,255,.30),inset 0 1px 0 rgba(255,255,255,.55);
+  --gc:47,85,212;
+}
+[data-llum="blue"]{--gc:47,85,212}[data-llum="coral"]{--gc:210,70,42}[data-llum="green"]{--gc:22,128,94}
+[data-llum="amber"]{--gc:201,133,18}[data-llum="violet"]{--gc:106,79,214}[data-llum="white"]{--gc:255,255,255}
+body[data-animation="tokens"],body[data-animation="vectors"],body[data-animation="prediccio"]{--acc-rgb:47,85,212}
+body[data-animation="atencio"],body[data-animation="entrenament"],body[data-animation="origens"]{--acc-rgb:22,128,94}
+body[data-animation="errors"]{--acc-rgb:210,70,42}
+body[data-animation="atractors"]{--acc-rgb:106,79,214}
+
+/* Capçalera i peu: la píndola, la barra de la frase i el punt actiu brillen amb el color del bloc */
+#course::before{box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 color-mix(in srgb,var(--accent) 70%,#000),0 10px 16px -8px rgba(21,23,28,.4),
+  0 0 26px 2px rgba(var(--acc-rgb,47,85,212),.36),0 0 60px 8px rgba(var(--acc-rgb,47,85,212),.14)}
+#caption::before{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 50%,#fff) 0%,var(--accent) 38%,var(--accent) 100%);
+  box-shadow:0 0 12px 1px rgba(var(--acc-rgb,47,85,212),.55),0 0 34px 6px rgba(var(--acc-rgb,47,85,212),.24),inset 0 1px 0 rgba(255,255,255,.6)}
+#dots i{transition:width .35s var(--ease),background .35s var(--ease),box-shadow .5s var(--ease)}
+#dots i.on{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 60%,#fff),var(--accent) 70%);
+  box-shadow:0 0 10px 1px rgba(var(--acc-rgb,47,85,212),.62),0 0 26px 4px rgba(var(--acc-rgb,47,85,212),.26)}
+footer button:hover:not(:disabled){box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 rgba(21,23,28,.10),0 0 18px 2px rgba(var(--acc-rgb,47,85,212),.30)}
+
+/* La capa de llum: entre el fons temàtic i el contingut; mai tapa el text */
+#llum{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#llum .sol{position:absolute;left:-560px;top:-620px;width:1560px;height:1240px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,253,244,.96),rgba(255,250,236,.62) 34%,rgba(255,246,226,.22) 62%,rgba(255,244,222,0) 100%)}
+#llum .raig{position:absolute;left:-140px;top:-120px;width:2700px;height:var(--h,160px);margin-top:calc(var(--h,160px) / -2);
+  transform-origin:0 50%;transform:rotate(calc(var(--a,26deg) + var(--q,0) * 3deg));
+  background:linear-gradient(90deg,rgba(255,255,255,.78) 0%,rgba(255,255,255,.34) 34%,rgba(255,255,255,.10) 62%,rgba(255,255,255,0) 86%);
+  filter:blur(var(--b,24px));opacity:var(--o,.6);transition:transform 1.6s var(--ease)}
+#llum .pols i{position:absolute;width:var(--s);height:var(--s);margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2);border-radius:50%;
+  background:radial-gradient(circle at 42% 40%,rgba(255,255,255,.98) 0 18%,rgba(var(--acc-rgb,47,85,212),.55) 46%,rgba(var(--acc-rgb,47,85,212),0) 72%);
+  box-shadow:0 0 calc(var(--s) * .6) calc(var(--s) * .08) rgba(var(--acc-rgb,47,85,212),.22);
+  filter:blur(var(--b,1px));opacity:var(--o,.5);
+  transform:translate(calc(var(--q,0) * var(--k,0) * 1px),calc(var(--q,0) * var(--k,0) * -.35px));transition:transform 1.6s var(--ease)}
+
+/* Encesa: la peça s'il·lumina un instant quan arriba (color amb data-llum, retard amb --d) */
+@keyframes llum-encen{
+  0%{filter:drop-shadow(0 0 0 rgba(var(--gc),0)) brightness(1)}
+  28%{filter:drop-shadow(0 0 20px rgba(var(--gc),.95)) brightness(1.16)}
+  100%{filter:drop-shadow(0 0 0 rgba(var(--gc),0)) brightness(1)}
+}
+body:not([data-dir="back"]) [data-encen]{animation:llum-encen 1.05s var(--ease) var(--d,0ms) backwards}
+/* Reflex: una franja de llum que travessa la peça una sola vegada (només en peces sense ::after propi) */
+[data-reflex]{position:relative;overflow:hidden}
+[data-reflex]::after{content:"";position:absolute;top:-30%;bottom:-30%;left:0;width:34%;pointer-events:none;
+  background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.72) 50%,rgba(255,255,255,0));
+  transform:translateX(-170%) skewX(-16deg);opacity:0}
+body:not([data-dir="back"]) [data-reflex]::after{animation:llum-reflex 1.15s cubic-bezier(.45,0,.2,1) var(--dr,450ms) both}
+@keyframes llum-reflex{0%{transform:translateX(-170%) skewX(-16deg);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translateX(330%) skewX(-16deg);opacity:0}}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}

@@ -1,0 +1,548 @@
+<!doctype html>
+<!--
+A8 · Els atractors, com a analogia (v2, 13-10-2026).
+No hi ha xifres de models ni dades quantitatives en pantalla.
+El paisatge, les valls i la bola són una analogia conceptual del pes del context;
+no descriuen el mecanisme intern del model, i la nota de sota ho recorda a cada pas.
+Física: moviment sobreamortit sobre una corba cosinus; la vall de la conversa s'aprofundeix
+amb un pou gaussià. Integració determinista amb pas fix; no hi ha sortejos ni rebots.
+Cap avançament automàtic: cada pas és una pulsació.
+v3 (13-10-2026): profunditat. El paisatge és un bloc de terreny amb crestes llunyanes, sombrejat segons el pendent (llum a dalt a l'esquerra),
+fitxes amb gruix, pla fins a l'horitzó al pas 6 i fons d'horitzó (window.fonsIA). La bola només es mou amb l'atribut transform de #ball; les animacions van a #ball-drop.
+v4 (13-10-2026): llum. La bola és una esfera emissora (halo coral + taca de llum càlida sobre el terreny, que la segueix); la corba, un neó violeta
+(halo de dos traços + fil clar); els punts de les valls, LED; fitxes «Missatge»/«Conversa llarga» amb halo coral i «Resum» amb halo verd, amb encesa en caure;
+fletxes amb aura (coral / verda); pou dels passos 4-5 amb resplendor violeta al fons; al pas 6, horitzó amb llum. Fons: turons amb vora de llum i uns pocs bokeh.
+Ritme (13-10-2026): carrega IA-S1-ritme.js al <head>; tot el moviment va més a poc a poc, pel mateix factor (LENT, a IA-S1-ritme.js).
+-->
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Els atractors, com a analogia</title><style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1920px;height:1080px;position:absolute;transform-origin:top left;overflow:hidden}
+button,a{font:inherit;color:var(--ink)}
+button{cursor:pointer}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* ---------- Paisatge (SVG de 1776 × 612, igual que #scene) ---------- */
+.a8{display:block;overflow:visible}
+.a8 text{font-size:40px;font-weight:600;fill:var(--ink)}
+.a8 .curve{fill:none;stroke:var(--violet);stroke-width:6px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .dot{fill:url(#a8-dotg);stroke:#3F28A8;stroke-opacity:.5;stroke-width:1.5px}
+.a8 .tick{fill:none;stroke:var(--ink);stroke-opacity:.55;stroke-width:4px;stroke-linecap:round}
+.a8 .guide{fill:none;stroke:var(--ink);stroke-opacity:.55;stroke-width:4px;stroke-linecap:round}
+.a8 .shadow{fill:#1B1240;fill-opacity:.5}
+.a8 .shadow.pen{fill-opacity:.2}
+.a8 .gloss{fill:#fff;fill-opacity:.8}
+.a8 .card-face{stroke-width:2px;stroke-linejoin:round}
+.a8 .card-face.msg{fill:url(#a8-cmsg);stroke:var(--coral);stroke-opacity:.55}
+.a8 .card-face.back{fill:url(#a8-cback);stroke:var(--coral);stroke-opacity:.35}
+.a8 .card-face.sum{fill:url(#a8-csum);stroke:var(--green);stroke-width:3px}
+.a8 .card-side{stroke-width:2px;stroke-linejoin:round}
+.a8 .card-side.msg{fill:#E39A80;stroke:#E39A80}
+.a8 .card-side.back{fill:#EDBBA9;stroke:#EDBBA9}
+.a8 .card-side.sum{fill:#7FC2A2;stroke:#7FC2A2}
+.a8 .card-hi{fill:none;stroke:#fff;stroke-opacity:.9;stroke-width:3px;stroke-linecap:round}
+.a8 .card-shadow{filter:drop-shadow(0 14px 12px rgba(40,24,110,.26))}
+.a8 .card-in{transform-box:fill-box;transform-origin:50% 100%}
+.a8 .card-text{font-size:44px;font-weight:650;letter-spacing:-.01em;paint-order:normal;stroke:none}
+/* v3 · Profunditat: les etiquetes sobre el paisatge porten una aurèola clara perquè es llegeixin sobre les crestes */
+.a8 text{paint-order:stroke;stroke:rgba(250,248,243,.8);stroke-width:7px;stroke-linejoin:round}
+.a8 .ridge-hi{fill:none;stroke:#fff;stroke-opacity:.7;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .curve-hi{fill:none;stroke:#fff;stroke-opacity:.55;stroke-width:4px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .strata{fill:none;stroke:#2A1C78;stroke-opacity:.1;stroke-width:3px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .plane-line{fill:none;stroke:#5B44C4;stroke-opacity:.22;stroke-width:3px}
+/* Fons: cel, resplendor de la llum (a dalt a l'esquerra) i turons llunyans desenfocats; sense text */
+#fons{-webkit-mask-image:linear-gradient(180deg,#000 0,#000 230px,rgba(0,0,0,.55) 380px,transparent 520px);
+        mask-image:linear-gradient(180deg,#000 0,#000 230px,rgba(0,0,0,.55) 380px,transparent 520px)}
+#fons svg{position:absolute;left:-140px;top:-70px;width:2200px;height:1200px;display:block}
+.a8 .push{fill:none;stroke:var(--coral);stroke-width:4px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .feed{fill:none;stroke:var(--green);stroke-width:4px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .bracket{fill:none;stroke:var(--ink);stroke-opacity:.55;stroke-width:4px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .new-title{font-size:52px;font-weight:700;letter-spacing:-.015em}
+/* v4 · Llum: neó de la corba (halo de dos traços + fil clar), LED als punts, aura de les fletxes, halo de les fitxes.
+   Res porta filtres nous sobre capes grans: el neó són traços apilats i la llum de la bola és un degradat. */
+.a8 .curve-halo{fill:none;stroke:#8467F2;stroke-linecap:round;stroke-linejoin:round}
+.a8 .curve-halo.h1{stroke-width:40px;stroke-opacity:.12}
+.a8 .curve-halo.h2{stroke-width:19px;stroke-opacity:.26}
+.a8 .curve-core{fill:none;stroke:#C4B5FF;stroke-opacity:.85;stroke-width:2.2px;stroke-linecap:round;stroke-linejoin:round}
+.a8 .led-halo{fill:url(#a8-ledg)}
+.a8 #arrow{filter:drop-shadow(0 0 4px rgba(210,70,42,.62)) drop-shadow(0 0 13px rgba(210,70,42,.34))}
+.a8 #feed{filter:drop-shadow(0 0 4px rgba(22,128,94,.62)) drop-shadow(0 0 13px rgba(22,128,94,.34))}
+.a8 .card-shadow.msg{filter:drop-shadow(0 14px 12px rgba(40,24,110,.26)) drop-shadow(0 0 18px rgba(210,70,42,.40))}
+.a8 .card-shadow.sum{filter:drop-shadow(0 14px 12px rgba(40,24,110,.26)) drop-shadow(0 0 20px rgba(22,128,94,.58))}
+</style><link rel="icon" href="data:,"><link rel="stylesheet" href="IA-S1-estil.css"><script src="IA-S1-ritme.js"></script></head><body data-animation="atractors"><div id="viewport"><div id="stage"><div id="course"></div><div id="stamp"></div><h1 id="title"></h1><main id="scene"></main><div id="caption"></div><div id="note"></div><footer><a id="index" href="IA-S1-00-index.html"></a><span id="help"></span><button id="prev">←</button><button id="next">→</button><button id="full">F</button><span id="counter" aria-live="polite"></span></footer></div></div><script>
+const TEXTOS = {
+  "course": "IA pràctica per a la docència",
+  "index": "Índex",
+  "previous": "Pas anterior",
+  "next": "Pas següent",
+  "full": "Pantalla completa",
+  "help": "← → / Espai / Av Pàg / Re Pàg     Inici: reinicia     F: pantalla completa",
+  "fullscreenError": "Prem F11 per obrir la pantalla completa.",
+  "illustrative": "Valors il·lustratius",
+  "prevSymbol": "←",
+  "nextSymbol": "→",
+  "fullSymbol": "F",
+  "title": "Els atractors, com a analogia",
+  "captions": [
+    "Un to, un paper o un tema poden marcar la conversa.",
+    "Una conversa tendeix a caure en una vall i quedar-s'hi.",
+    "Una instrucció petita no sempre la treu.",
+    "Cada missatge afegeix context al mateix paisatge.",
+    "Com més llarga és la conversa, més pesa el context.",
+    "De vegades, convé començar una conversa nova amb un resum."
+  ],
+  "analogy": "Analogia: no és el mecanisme intern del model.",
+  "valleys": [
+    "To formal",
+    "To col·loquial",
+    "Paper de professor",
+    "Tema que es repeteix"
+  ],
+  "valleyLines": [
+    [
+      "To formal"
+    ],
+    [
+      "To col·loquial"
+    ],
+    [
+      "Paper de",
+      "professor"
+    ],
+    [
+      "Tema que es",
+      "repeteix"
+    ]
+  ],
+  "conversation": "La conversa",
+  "message": "Missatge",
+  "changeTone": "canvia de to",
+  "longConversation": "Conversa llarga",
+  "newConversation": "Conversa nova",
+  "summary": "Resum"
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let current=0, totalSteps=1, drawStep, generation=0;
+const EASE='cubic-bezier(.2,.8,.2,1)';
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+function motion(el,frames,options={}){if(!el||reduced())return null;return el.animate(frames,{duration:600,easing:EASE,fill:'both',...options});}
+// Només es mou la frase de sota (és nova a cada pas); la resta del paisatge s'anima a part.
+function show(html,caption='',note='',stamp=''){
+ $('#scene').innerHTML=html;$('#caption').textContent=caption;$('#note').textContent=note;$('#stamp').textContent=stamp;
+ if(caption)motion($('#caption'),[{opacity:0,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}],{duration:500});
+}
+function resize(){const s=Math.min(innerWidth/1920,innerHeight/1080);const stage=$('#stage');stage.style.transform=`scale(${s})`;stage.style.left=`${(innerWidth-1920*s)/2}px`;stage.style.top=`${(innerHeight-1080*s)/2}px`;}
+function go(n){const next=Math.max(0,Math.min(totalSteps-1,n));if(next===current&&generation)return;const prev=current;current=next;generation++;document.getAnimations().forEach(a=>a.cancel());drawStep(current,prev);$('#counter').textContent=`${current+1}/${totalSteps}`;$('#prev').disabled=current===0;$('#next').disabled=current===totalSteps-1;document.body.dataset.step=String(current+1);}
+async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){$('#note').textContent=TEXTOS.fullscreenError;}}
+function boot(total,renderer){totalSteps=total;drawStep=renderer;document.title=TEXTOS.title;$('#title').textContent=TEXTOS.title;$('#course').textContent=TEXTOS.course;$('#help').textContent=TEXTOS.help;$('#index').textContent=TEXTOS.index;$('#prev').ariaLabel=TEXTOS.previous;$('#next').ariaLabel=TEXTOS.next;$('#full').ariaLabel=TEXTOS.full;$('#prev').textContent=TEXTOS.prevSymbol;$('#next').textContent=TEXTOS.nextSymbol;$('#full').textContent=TEXTOS.fullSymbol;
+ $('#prev').onclick=e=>{e.stopPropagation();go(current-1)};$('#next').onclick=e=>{e.stopPropagation();go(current+1)};$('#full').onclick=e=>{e.stopPropagation();fullscreen()};
+ $('#stage').onclick=e=>{if(e.target.closest('button,a,input,select,[data-interactive]'))return;go(current+1)};
+ addEventListener('keydown',e=>{if(e.altKey||e.ctrlKey||e.metaKey)return;if(e.target.closest('input,textarea,select'))return;let handled=true;if(['ArrowRight',' ','PageDown'].includes(e.key))go(current+1);else if(['ArrowLeft','PageUp'].includes(e.key))go(current-1);else if(e.key==='Home'){generation=0;go(0)}else if(e.key.toLowerCase()==='f')fullscreen();else handled=false;if(handled)e.preventDefault()});
+ addEventListener('resize',resize);resize();go(0);
+ motion($('#title'),[{opacity:0,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}],{duration:600});
+ window.presentation={go,next:()=>go(current+1),previous:()=>go(current-1),get step(){return current+1},get total(){return totalSteps},get generation(){return generation}};
+}
+
+/* =====================================================================
+   A8 · el paisatge
+   Coordenades del SVG: 0…1776 × 0…612 (la mida exacta de #scene).
+   ===================================================================== */
+const G={
+  W:1776,H:612,P:444,X0:222,   // quatre valls de 444 px; la primera, la de la conversa
+  CREST:184,A:80,              // cim (y) i semiamplada de la corba
+  SIG:150,D1:90,D2:170,        // pou gaussià: fondària extra als passos 4 i 5
+  R:32,START:140,              // radi de la bola i punt de partida (pendent esquerra)
+  GROUND:400,                  // nivell del paisatge pla (pas 6)
+  LABEL_Y:592,                 // línia base de les etiquetes de les valls
+  CARD_X:222,CARD_Y:34,CARD_H:96,
+  BALL6:693,SUM_X:853,SUM_W:280,SUM_Y:280
+};
+G.CENTRES=[0,1,2,3].map(i=>G.X0+i*G.P);
+const gauss=x=>Math.exp(-(((x-G.X0)/G.SIG)**2));
+function surface(x,depth=0,flat=0){
+  const th=2*Math.PI*(x-G.X0)/G.P;
+  const y=G.CREST+G.A*(1+Math.cos(th))+depth*gauss(x);
+  return y*(1-flat)+G.GROUND*flat;
+}
+function slope(x,depth=0,flat=0){
+  const th=2*Math.PI*(x-G.X0)/G.P;
+  return (-G.A*(2*Math.PI/G.P)*Math.sin(th)-2*depth*(x-G.X0)/(G.SIG*G.SIG)*gauss(x))*(1-flat);
+}
+const clamp01=v=>Math.max(0,Math.min(1,v));
+const seg=(ms,a,b)=>clamp01((ms-a)/(b-a));
+const e3=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;   // entra i surt suau
+const eo=t=>1-Math.pow(1-t,3);                       // frena al final
+
+// Sobreamortiment: la bola segueix el pendent i l'empenta s'esvaeix. Pas fix de 1/240 s.
+const K=520;
+function simulate({x0,T,depth=()=>0,pushes=[]}){
+  const dt=1/240,n=Math.round(T/dt),xs=[x0];let x=x0;
+  for(let i=0;i<n;i++){
+    const t=i*dt,s=slope(x,depth(t));
+    let v=K*s/Math.sqrt(1+s*s);
+    for(const p of pushes)if(t>=p.t0)v+=p.v*Math.exp(-(t-p.t0)/p.tau);
+    x+=v*dt;xs.push(x);
+  }
+  xs[xs.length-1]=G.X0;
+  return xs;
+}
+const SIM={
+  fall:simulate({x0:G.START,T:.8}),                                            // pas 2: cau a la vall
+  push3:simulate({x0:G.X0,T:.9,pushes:[{t0:0,v:1800,tau:.08}]}),               // pas 3: l'empenta no la treu
+  push5:simulate({x0:G.X0,T:1.35,                                              // pas 5: la vall s'aprofundeix i
+    depth:t=>G.D1+(G.D2-G.D1)*e3(clamp01(t/.65)),                              // la mateixa empenta ja fa menys
+    pushes:[{t0:.5,v:1150,tau:.08}]})
+};
+function sampleSim(arr,ms){
+  if(!(ms>0))return arr[0];
+  const f=ms/1000*240;if(f>=arr.length-1)return arr[arr.length-1];
+  const i=Math.floor(f);return arr[i]+(arr[i+1]-arr[i])*(f-i);
+}
+
+// Guió de cada pas: durada total i estat (posició, fondària, aplanament, fletxa) a cada instant.
+const TOTAL=[1500,1250,1350,1050,1400,1150];
+function stateAt(step,ms){
+  const s={x:G.X0,depth:0,flat:0,arrow:0,nudge:0};
+  if(step===0)s.x=G.START;
+  if(step===1){s.x=sampleSim(SIM.fall,ms-380);s.arrow=eo(seg(ms,150,450));}
+  if(step===2){s.x=sampleSim(SIM.push3,ms-450);s.arrow=eo(seg(ms,150,450));}
+  if(step===3){s.depth=G.D1*e3(seg(ms,300,1000));s.arrow=eo(seg(ms,250,550));}
+  if(step===4){s.depth=G.D1+(G.D2-G.D1)*e3(seg(ms,0,650));s.x=sampleSim(SIM.push5,ms);s.arrow=1;s.nudge=Math.sin(Math.PI*seg(ms,380,700));}
+  if(step===5){
+    s.depth=G.D2;s.flat=e3(seg(ms,0,700));
+    s.x=G.X0+(G.BALL6-G.X0)*e3(seg(ms,350,900));
+  }
+  return s;
+}
+
+// La bola descansa sobre la corba: x és el punt de contacte.
+function ballAt(x,depth,flat){
+  const s=slope(x,depth,flat),n=Math.sqrt(1+s*s);
+  return {x:x+G.R*s/n,y:surface(x,depth,flat)-G.R/n,s,n};
+}
+// «La conversa» va a sobre de la bola, amb una guia curta; si la paret de la vall l'esquitxaria, puja just el que cal.
+const LABEL_HW=110;
+function placeLabel(bx,by,depth,flat){
+  const cx=Math.max(LABEL_HW+10,Math.min(G.W-LABEL_HW-10,bx)),top=by-G.R-8;
+  let guide=24;
+  for(;guide<420;guide+=2){
+    const bottom=top-guide-12+6;let ok=true;
+    for(let x=cx-LABEL_HW-16;x<=cx+LABEL_HW+16;x+=6)if(surface(x,depth,flat)<bottom+16){ok=false;break;}
+    if(ok)break;
+  }
+  return {cx,yb:top-guide-12,top};
+}
+const pts=(depth,flat)=>{const a=[];for(let x=0;x<=G.W;x+=6)a.push(`${x},${surface(x,depth,flat).toFixed(1)}`);return a;};
+
+/* ---------- v3 · Relleu ----------
+   El paisatge és un bloc de terreny: la corba és el perfil del davant; darrere s'allunyen dues crestes
+   (més clares i més altes, es perden en la boira) i, al pas 6, un pla fins a l'horitzó.
+   Una sola llum, a dalt a l'esquerra: les vessants que miren a l'esquerra s'il·luminen, les de la dreta fan ombra. */
+const HZ=250;                                    // horitzó del pas 6 (y)
+const RIDGES=[                                   // de la més llunyana a la més pròxima
+  {id:'r2',top:58,amp:26,per:690,x0:380,wob:10,c1:'#E3DDF6',c2:'#EDE9F8',k:.3,haze:150,band:40,blur:8},
+  {id:'r1',top:104,amp:40,per:510,x0:150,wob:12,c1:'#CFC5F0',c2:'#E2DCF6',k:.45,haze:230,band:54,blur:12}
+];
+const ridgeY=(r,x)=>r.top+r.amp*(1+Math.cos(2*Math.PI*(x-r.x0)/r.per))+r.wob*Math.cos(2*Math.PI*(x-r.x0)/(r.per*.41)+1.1);
+const ridgeDy=(r,x)=>-r.amp*(2*Math.PI/r.per)*Math.sin(2*Math.PI*(x-r.x0)/r.per)-r.wob*(2*Math.PI/(r.per*.41))*Math.sin(2*Math.PI*(x-r.x0)/(r.per*.41)+1.1);
+const LX=-.64,LY=-.77;                           // cap a on és la llum (y cap avall)
+// Tint d'una vessant segons el pendent s = dy/dx: blanc si mira a la llum, violeta fosc si no hi mira.
+function shadeOf(s,k=1){
+  const v=(LX*s-LY)/Math.sqrt(1+s*s)-.77;
+  return v>0?{c:'255,255,255',a:Math.min(.5,v*1.9*k)}:{c:'52,30,150',a:Math.min(.5,-v*.62*k)};
+}
+const SHADE_N=148,SHADE_DX=G.W/SHADE_N;
+function shadeStops(slopeAt,k){
+  let h='';
+  for(let i=0;i<=SHADE_N;i++){const t=shadeOf(slopeAt(i*SHADE_DX),k);h+=`<stop offset="${(i/SHADE_N).toFixed(4)}" stop-color="rgb(${t.c})" stop-opacity="${t.a.toFixed(3)}"/>`;}
+  return h;
+}
+// Estrats: línies suaus paral·leles a la corba, a la cara del davant (es tallen abans d'arribar a baix de tot)
+function strata(off,depth,flat){
+  let d='',pen=false;
+  for(let x=0;x<=G.W;x+=6){const y=surface(x,depth,flat)+off;if(y>584){pen=false;continue;}d+=`${pen?'L':'M'}${x},${y.toFixed(1)}`;pen=true;}
+  return d;
+}
+function ridgeMarkup(r){
+  const a=[],hi=[];
+  for(let x=0;x<=G.W;x+=6){const y=ridgeY(r,x);a.push(`${x},${y.toFixed(1)}`);hi.push(`${x},${(y+3).toFixed(1)}`);}
+  const bot=a.slice().reverse().map(q=>{const i=q.indexOf(',');return q.slice(0,i)+','+(+q.slice(i+1)+r.band).toFixed(1);});
+  const d='M'+a.join(' L'),yb=r.top+2*r.amp+r.wob+r.haze*.5,area=`${d} L${G.W},${yb+30} L0,${yb+30} Z`;
+  return `<g id="${r.id}"><linearGradient id="${r.id}-g" gradientUnits="userSpaceOnUse" x1="0" y1="${r.top}" x2="0" y2="${yb+30}"><stop offset="0" stop-color="${r.c1}"/><stop offset=".6" stop-color="${r.c2}" stop-opacity=".9"/><stop offset="1" stop-color="${r.c2}" stop-opacity="0"/></linearGradient>
+   <linearGradient id="${r.id}-s" gradientUnits="userSpaceOnUse" x1="0" x2="${G.W}" y1="0" y2="0">${shadeStops(x=>ridgeDy(r,x),r.k)}</linearGradient>
+   <clipPath id="${r.id}-c"><path d="${area}"/></clipPath>
+   <filter id="${r.id}-f" filterUnits="userSpaceOnUse" x="0" y="0" width="${G.W}" height="${Math.ceil(yb)}"><feGaussianBlur stdDeviation="${r.blur}"/></filter>
+   <path d="${area}" fill="url(#${r.id}-g)"/>
+   <g clip-path="url(#${r.id}-c)"><g filter="url(#${r.id}-f)"><path d="${d} L${bot.join(' L')} Z" fill="url(#${r.id}-s)"/></g></g>
+   <path class="ridge-hi" d="M${hi.join(' L')}" opacity="${(r.k*.8).toFixed(2)}"/></g>`;
+}
+// El pla del pas 6: terra que fuig cap al punt de fuga de l'horitzó
+function planeMarkup(){
+  const vx=G.W/2,near=G.GROUND+20;let lines='';
+  for(let k=-16;k<=16;k++){                        // línies de fuga, tallades a les vores de l'escena
+    let ex=vx+k*150,ey=near;
+    if(ex<0||ex>G.W){const t=((ex<0?0:G.W)-vx)/(ex-vx);ey=HZ+(near-HZ)*t;ex=ex<0?0:G.W;}
+    lines+=`<path class="plane-line" d="M${vx},${HZ} L${ex.toFixed(0)},${ey.toFixed(1)}"/>`;
+  }
+  for(let j=1;j<=9;j++){const y=HZ+(G.GROUND-HZ)/(1+.55*j);lines+=`<path class="plane-line" style="stroke-opacity:${(.06+.025*(10-j)).toFixed(3)}" d="M0,${y.toFixed(1)} H${G.W}"/>`;}
+  return `<g id="plane" opacity="0"><clipPath id="a8-pclip"><rect x="0" y="${HZ}" width="${G.W}" height="${G.H-12-HZ}"/></clipPath>
+   <linearGradient id="a8-pg" gradientUnits="userSpaceOnUse" x1="0" y1="${HZ}" x2="0" y2="${G.H-12}"><stop offset="0" stop-color="#F3F0FB"/><stop offset=".15" stop-color="#E2DBF6"/><stop offset=".4286" stop-color="#C9BFEE"/><stop offset=".48" stop-color="#C9BFEE" stop-opacity="0"/><stop offset="1" stop-color="#C9BFEE" stop-opacity="0"/></linearGradient>
+   <g clip-path="url(#a8-pclip)"><rect x="0" y="${HZ}" width="${G.W}" height="${G.H-12-HZ}" fill="url(#a8-pg)"/>${lines}
+   <rect x="0" y="${HZ}" width="${G.W}" height="46" fill="url(#a8-haze)"/></g>
+   <path d="M0,${HZ} H${G.W}" stroke="#fff" stroke-opacity=".55" stroke-width="3" fill="none"/>
+   <rect x="0" y="${HZ-84}" width="${G.W}" height="84" fill="url(#a8-haze2)"/>
+   <rect x="0" y="${HZ-70}" width="${G.W}" height="140" fill="url(#a8-hz)"/>
+   <rect x="0" y="${HZ-124}" width="520" height="248" fill="url(#a8-sun)"/>
+   <path d="M0,${HZ} H${G.W}" stroke="url(#a8-hzl)" stroke-width="3.5" fill="none"/></g>`;
+}
+
+/* ---------- Marcatge ---------- */
+/* Fitxa amb gruix: cara amb degradat, cantell a sota i un fil de llum a dalt. */
+function slab(x,y,w,face,t=10){
+  return `<rect class="card-side ${face}" x="${x}" y="${y+t}" width="${w}" height="${G.CARD_H}" rx="22"/><rect class="card-face ${face}" x="${x}" y="${y}" width="${w}" height="${G.CARD_H}" rx="22"/><path class="card-hi" d="M${x+26},${y+6} H${x+w-26}"/>`;
+}
+function cardMarkup(id,text,w,x,y,face,enc=''){
+  return `<g id="${id}"${enc}><g class="card-in"><g class="card-shadow ${face}">${slab(x,y,w,face)}</g><text class="card-text" x="${x+w/2}" y="${y+G.CARD_H/2+15}" text-anchor="middle">${esc(text)}</text></g></g>`;
+}
+function messageMarkup(step,id='msg'){
+  const cx=G.CARD_X,y=G.CARD_Y;
+  if(step===3||step===4){
+    const w=400,x=cx-w/2;
+    return `<g id="${id}"${id==='msg'&&step===3?' data-encen data-llum="coral" style="--d:530ms"':''}><g class="card-in"><g class="card-shadow msg">${slab(x+28,y-28,w,'back',7)}${slab(x+14,y-14,w,'back',7)}${slab(x,y,w,'msg')}</g><text class="card-text" x="${cx}" y="${y+G.CARD_H/2+15}" text-anchor="middle">${esc(TEXTOS.longConversation)}</text></g></g>`;
+  }
+  const t=step===2?TEXTOS.changeTone:TEXTOS.message,w=step===2?340:300;
+  return cardMarkup(id,t,w,cx-w/2,y,'msg',id==='msg'?' data-encen data-llum="coral" style="--d:480ms"':'');
+}
+function buildStep(step,previous){
+  const T=TEXTOS,flat=step===5;
+  const valleys=G.CENTRES.map((c,i)=>`<g id="valley-${i}"><line class="tick" id="tick-${i}" x1="${c}" x2="${c}" y1="0" y2="0"/><text x="${c}" y="${G.LABEL_Y}" text-anchor="middle">${esc(T.valleys[i])}</text></g>`).join('');
+  const dots=G.CENTRES.map((c,i)=>`<circle class="led-halo" id="dh-${i}" cx="${c}" r="30"/><circle class="dot" id="dot-${i}" cx="${c}" r="10"/>`).join('');
+  return `<svg class="a8" width="${G.W}" height="${G.H}" viewBox="0 0 ${G.W} ${G.H}" role="img" aria-label="${esc(T.title)}">
+  <defs>
+   <linearGradient id="a8-fill" gradientUnits="userSpaceOnUse" x1="0" y1="${G.CREST}" x2="0" y2="${G.H-12}"><stop offset="0" stop-color="#BFB2EE"/><stop offset=".35" stop-color="#D0C7F2"/><stop offset=".75" stop-color="#E3DEF6"/><stop offset="1" stop-color="#EFECF8" stop-opacity="0"/></linearGradient>
+   <linearGradient id="a8-shade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${G.W}" y2="0">${shadeStops(x=>slope(x,0,0),1)}</linearGradient>
+   <linearGradient id="a8-mg" gradientUnits="userSpaceOnUse" x1="0" y1="${G.CREST}" x2="0" y2="${G.H-12}"><stop offset="0" stop-color="#fff"/><stop offset=".75" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+   <mask id="a8-m" maskUnits="userSpaceOnUse" x="0" y="0" width="${G.W}" height="${G.H}"><rect x="0" y="0" width="${G.W}" height="${G.H}" fill="url(#a8-mg)"/></mask>
+   <radialGradient id="a8-well"><stop offset="0" stop-color="#25166F" stop-opacity=".66"/><stop offset=".55" stop-color="#4A34B8" stop-opacity=".26"/><stop offset="1" stop-color="#4A34B8" stop-opacity="0"/></radialGradient>
+   <radialGradient id="a8-ball" cx=".34" cy=".3" r=".8"><stop offset="0" stop-color="#FFE9E2"/><stop offset=".38" style="stop-color:var(--coral)"/><stop offset="1" stop-color="#8E2A14"/></radialGradient>
+   <radialGradient id="a8-bounce" cx=".7" cy=".92" r=".6"><stop offset="0" stop-color="#9A86F2" stop-opacity=".7"/><stop offset="1" stop-color="#9A86F2" stop-opacity="0"/></radialGradient>
+   <radialGradient id="a8-dotg" cx=".5" cy=".46" r=".62"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".28" stop-color="#E4DCFF"/><stop offset=".62" stop-color="#7D63EA"/><stop offset="1" stop-color="#3F28A8"/></radialGradient>
+   <radialGradient id="a8-ledg"><stop offset="0" stop-color="#B7A6FF" stop-opacity=".78"/><stop offset=".38" stop-color="#8F78F2" stop-opacity=".34"/><stop offset="1" stop-color="#7D63EA" stop-opacity="0"/></radialGradient>
+   <radialGradient id="a8-ballhalo"><stop offset="0" stop-color="#FF9A78" stop-opacity=".58"/><stop offset=".3" stop-color="#FF8A62" stop-opacity=".44"/><stop offset=".55" stop-color="#E8603E" stop-opacity=".16"/><stop offset="1" stop-color="#D2462A" stop-opacity="0"/></radialGradient>
+   <radialGradient id="a8-pool"><stop offset="0" stop-color="#FFF2D8" stop-opacity=".9"/><stop offset=".4" stop-color="#FFDDA8" stop-opacity=".46"/><stop offset="1" stop-color="#FFCB94" stop-opacity="0"/></radialGradient>
+   <radialGradient id="a8-wglow"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".98"/><stop offset=".22" stop-color="#E3DAFF" stop-opacity=".88"/><stop offset=".5" stop-color="#9680F5" stop-opacity=".6"/><stop offset=".78" stop-color="#6F52E0" stop-opacity=".24"/><stop offset="1" stop-color="#6F52E0" stop-opacity="0"/></radialGradient>
+   <radialGradient id="a8-hz" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(330 ${HZ-2}) scale(980 66)"><stop offset="0" stop-color="#FFFDF4" stop-opacity="1"/><stop offset=".4" stop-color="#FFF1D2" stop-opacity=".7"/><stop offset="1" stop-color="#FFF1D2" stop-opacity="0"/></radialGradient>
+   <radialGradient id="a8-sun" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(130 ${HZ-4}) scale(360 118)"><stop offset="0" stop-color="#FFFFFF" stop-opacity="1"/><stop offset=".3" stop-color="#FFF0C8" stop-opacity=".78"/><stop offset="1" stop-color="#FFE6B0" stop-opacity="0"/></radialGradient>
+   <linearGradient id="a8-hzl" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${G.W}" y2="0"><stop offset="0" stop-color="#FFFDF2"/><stop offset=".45" stop-color="#FFFFFF" stop-opacity=".8"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".35"/></linearGradient>
+   <linearGradient id="a8-cmsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF4EF"/><stop offset="1" stop-color="#FFD9CB"/></linearGradient>
+   <linearGradient id="a8-cback" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF9F6"/><stop offset="1" stop-color="#FFE7DD"/></linearGradient>
+   <linearGradient id="a8-csum" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0FAF5"/><stop offset="1" stop-color="#CBEBDC"/></linearGradient>
+   <linearGradient id="a8-haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+   <linearGradient id="a8-haze2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6F3FC" stop-opacity="0"/><stop offset="1" stop-color="#F6F3FC" stop-opacity=".75"/></linearGradient>
+   <linearGradient id="a8-hm" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${G.W}" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".06" stop-color="#fff"/><stop offset=".94" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+   <mask id="a8-hmask" maskUnits="userSpaceOnUse" x="0" y="0" width="${G.W}" height="${G.H}"><rect x="0" y="0" width="${G.W}" height="${G.H}" fill="url(#a8-hm)"/></mask>
+   <clipPath id="a8-clip"><path id="clip-d"/></clipPath>
+   <filter id="a8-blur" x="-60%" y="-200%" width="220%" height="500%"><feGaussianBlur stdDeviation="3"/></filter>
+   <filter id="a8-blur3" filterUnits="userSpaceOnUse" x="0" y="0" width="${G.W}" height="${G.H}"><feGaussianBlur stdDeviation="15"/></filter>
+   <filter id="a8-blur2" x="-60%" y="-250%" width="220%" height="600%"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+  <g id="ridges" mask="url(#a8-hmask)">${RIDGES.map(ridgeMarkup).join('')}</g>
+  ${flat?planeMarkup():''}
+  <path id="fill" fill="url(#a8-fill)"/>
+  <g clip-path="url(#a8-clip)"><g mask="url(#a8-m)"><g filter="url(#a8-blur3)"><path id="shade" fill="url(#a8-shade)"/></g></g></g>
+  <path id="strata-0" class="strata"/><path id="strata-1" class="strata"/>
+  <ellipse id="well" fill="url(#a8-well)" clip-path="url(#a8-clip)" opacity="0"/>
+  <ellipse id="wellglow" fill="url(#a8-wglow)" opacity="0"/>
+  <g id="poolg" clip-path="url(#a8-clip)"><ellipse id="pool" fill="url(#a8-pool)"/></g>
+  ${flat?`<clipPath id="a8-pclip3"><rect x="0" y="${HZ}" width="${G.W}" height="${G.GROUND-HZ}"/></clipPath><g id="pool2g" clip-path="url(#a8-pclip3)" opacity="0"><ellipse id="pool2" fill="url(#a8-pool)"/></g>`:''}
+  <path id="curve-h1" class="curve-halo h1"/><path id="curve-h2" class="curve-halo h2"/>
+  <path id="curve-hi" class="curve-hi"/>
+  <path id="curve" class="curve"/>
+  <path id="curve-core" class="curve-core"/>
+  <g id="dots">${dots}</g>
+  <g id="valleys">${valleys}</g>
+  ${step===5&&previous===4?messageMarkup(4,'ghost'):''}
+  ${step>=1&&step<=4?`<g id="arrow"><path class="push" id="arrow-shaft"/><path class="push" id="arrow-head"/></g>${messageMarkup(step)}`:''}
+  ${flat?`<g id="newconv"><g class="card-in"><text class="new-title" x="${(G.BALL6-60+G.SUM_X+G.SUM_W+30)/2}" y="132" text-anchor="middle">${esc(T.newConversation)}</text><path class="bracket" d="M${G.BALL6-60},188 V162 H${G.SUM_X+G.SUM_W+30} V188"/></g></g>
+  <g id="summary" data-encen data-llum="green" style="--d:900ms"><ellipse class="floor" cx="${G.SUM_X+G.SUM_W/2+14}" cy="${G.SUM_Y+G.CARD_H+22}" rx="${G.SUM_W/2+6}" ry="9" fill="#2A1C78" fill-opacity=".22" filter="url(#a8-blur2)"/><g class="card-in"><g class="card-shadow sum">${slab(G.SUM_X,G.SUM_Y,G.SUM_W,'sum')}</g><text class="card-text" x="${G.SUM_X+G.SUM_W/2}" y="${G.SUM_Y+G.CARD_H/2+15}" text-anchor="middle">${esc(T.summary)}</text></g></g>
+  <g id="feed"><path class="feed" id="feed-shaft"/><path class="feed" id="feed-head"/></g>`:''}
+  <g id="ball-drop"${step===0?' data-encen data-llum="coral" style="--d:1260ms"':step===1?' data-encen data-llum="coral" style="--d:900ms"':''}><g id="ball"><circle r="108" fill="url(#a8-ballhalo)"/><ellipse class="shadow pen" id="ball-shadow2" rx="44" ry="11" filter="url(#a8-blur2)"/><ellipse class="shadow" id="ball-shadow" rx="26" ry="6.5" filter="url(#a8-blur)"/><circle r="${G.R}" fill="url(#a8-ball)"/><circle r="${G.R}" fill="url(#a8-bounce)"/><ellipse class="gloss" cx="-11" cy="-14" rx="10" ry="6" transform="rotate(-38 -11 -14)"/></g></g>
+  <g id="conv"><path class="guide" id="conv-guide"/><text id="conv-text" text-anchor="middle">${esc(T.conversation)}</text></g>
+ </svg>`;
+}
+
+/* ---------- Pintar un instant del pas ---------- */
+let E={};
+function cacheEls(){E={};document.querySelectorAll('#scene [id]').forEach(el=>E[el.id]=el);}
+function arrowGeometry(x1,y1,x2,y2,p){
+  // Fletxa de x1,y1 cap a x2,y2, dibuixada fins a la proporció p; el cap va a la punta.
+  const tx=x1+(x2-x1)*p,ty=y1+(y2-y1)*p,L=Math.hypot(x2-x1,y2-y1)||1,ux=(x2-x1)/L,uy=(y2-y1)/L;
+  const hx=-uy,hy=ux,back=20,side=12;
+  const shaft=`M${x1.toFixed(1)},${y1.toFixed(1)} L${(tx-ux*2).toFixed(1)},${(ty-uy*2).toFixed(1)}`;
+  const head=`M${(tx-ux*back+hx*side).toFixed(1)},${(ty-uy*back+hy*side).toFixed(1)} L${tx.toFixed(1)},${ty.toFixed(1)} L${(tx-ux*back-hx*side).toFixed(1)},${(ty-uy*back-hy*side).toFixed(1)}`;
+  return {shaft,head};
+}
+function paintStep(step,ms){
+  const st=stateAt(step,ms),{depth,flat}=st;
+  const curve=pts(depth,flat);
+  const d='M'+curve.join(' L');
+  E.curve.setAttribute('d',d);E['curve-hi'].setAttribute('d','M'+curve.map(q=>{const i=q.indexOf(',');return q.slice(0,i)+','+(+q.slice(i+1)+4).toFixed(1);}).join(' L'));
+  E['curve-h1'].setAttribute('d',d);E['curve-h2'].setAttribute('d',d);E['curve-core'].setAttribute('d',d);   // neó: mateix traç, tres gruixos
+  E.fill.setAttribute('d',d+` L${G.W},${G.H-12} L0,${G.H-12} Z`);
+  // banda de sombrejat enganxada a la superfície (es difumina): la llum treballa a la vora, no a tot el bloc
+  const sh=(q,dy)=>{const i=q.indexOf(',');return q.slice(0,i)+','+(+q.slice(i+1)+dy).toFixed(1);};
+  E.shade.setAttribute('d','M'+curve.map(q=>sh(q,-8)).join(' L')+' L'+curve.slice().reverse().map(q=>sh(q,104)).join(' L')+' Z');
+  E['clip-d'].setAttribute('d',d+` L${G.W},${G.H} L0,${G.H} Z`);
+  E['strata-0'].setAttribute('d',strata(66,depth,flat));E['strata-1'].setAttribute('d',strata(132,depth,flat));
+  let ymin=1e9;for(let x=0;x<=G.W;x+=6)ymin=Math.min(ymin,surface(x,depth,flat));
+  E['a8-fill'].setAttribute('y1',ymin);E['a8-fill'].setAttribute('y2',G.H-12);E['a8-mg'].setAttribute('y1',ymin);
+  // sombrejat segons el pendent (llum a dalt a l'esquerra): només es recalcula si la forma ha canviat
+  const key=depth.toFixed(2)+'|'+flat.toFixed(3);
+  if(E._k!==key){
+    E._k=key;
+    if(!E._stops)E._stops=[...E['a8-shade'].children];
+    E._stops.forEach((el,i)=>{const t=shadeOf(slope(i*SHADE_DX,depth,flat));el.setAttribute('stop-color','rgb('+t.c+')');el.setAttribute('stop-opacity',t.a.toFixed(3));});
+  }
+  // pou: la vall de la conversa fa una ombra pròpia, cap a la dreta, quan s'aprofundeix
+  const bottom=surface(G.X0,depth,flat);
+  const wy=Math.min(bottom+10,G.H-120);E.well.setAttribute('cx',G.X0+26);E.well.setAttribute('cy',wy);E.well.setAttribute('rx',G.X0+10);E.well.setAttribute('ry',Math.min(230,G.H-wy-24));
+  E.well.setAttribute('opacity',String(clamp01(depth/G.D2)*(1-flat)));
+  // llum del pou: al fons de la vall que s'aprofundeix, un resplendor violeta (nucli blanc, anell saturat) que omple la V
+  const wgy=bottom-24;E.wellglow.setAttribute('cx',G.X0+2);E.wellglow.setAttribute('cy',wgy.toFixed(1));E.wellglow.setAttribute('rx',176);E.wellglow.setAttribute('ry',Math.max(20,Math.min(108,G.H-4-wgy)).toFixed(1));
+  E.wellglow.setAttribute('opacity',String(clamp01(depth/G.D2)*(1-flat)));
+  // pla del pas 6: apareix quan el terreny ja és gairebé pla
+  if(E.plane)E.plane.setAttribute('opacity',String(eo(clamp01((flat-.3)/.7))));
+  // punts i etiquetes de les valls
+  const fade=1-clamp01(flat*2.4);
+  G.CENTRES.forEach((c,i)=>{
+    const y=surface(c,depth,flat);
+    E['dot-'+i].setAttribute('cy',y.toFixed(1));E['dh-'+i].setAttribute('cy',y.toFixed(1));
+    E['tick-'+i].setAttribute('y1',(y+20).toFixed(1));E['tick-'+i].setAttribute('y2',G.LABEL_Y-44);
+  });
+  E.dots.style.opacity=String(fade);E.valleys.style.opacity=String(fade);
+  // bola + «La conversa»
+  const b=ballAt(st.x,depth,flat);
+  E.ball.setAttribute('transform',`translate(${b.x.toFixed(2)} ${b.y.toFixed(2)})`);
+  // ombra de contacte: s'allarga cap a la dreta seguint el pendent (la llum ve de l'esquerra)
+  const ang=(Math.atan(b.s)*180/Math.PI).toFixed(2);
+  [[E['ball-shadow'],9],[E['ball-shadow2'],16]].forEach(([sh,dl])=>{
+    const cx=(-G.R*b.s/b.n+dl/b.n).toFixed(2),cy=(G.R/b.n+dl*b.s/b.n).toFixed(2);
+    sh.setAttribute('cx',cx);sh.setAttribute('cy',cy);sh.setAttribute('transform',`rotate(${ang} ${cx} ${cy})`);
+  });
+  // la bola il·lumina el terreny: taca de llum càlida al punt de contacte, girada segons el pendent (dins del terreny; al pas 6, sobre el pla)
+  const cy0=surface(st.x,depth,flat);
+  let prx=150,pry=86;{const ar=Math.atan(b.s),pw=prx*Math.abs(Math.cos(ar))+pry*Math.abs(Math.sin(ar)),k=Math.min(1,(st.x-2)/pw);prx*=k;pry*=k;}   // la caixa no surt de l'escena
+  E.pool.setAttribute('cx',st.x.toFixed(2));E.pool.setAttribute('cy',cy0.toFixed(2));E.pool.setAttribute('rx',prx.toFixed(1));E.pool.setAttribute('ry',pry.toFixed(1));
+  E.pool.setAttribute('transform',`rotate(${ang} ${st.x.toFixed(2)} ${cy0.toFixed(2)})`);
+  E.poolg.style.opacity=String(1-flat);
+  if(E.pool2){E.pool2.setAttribute('cx',b.x.toFixed(2));E.pool2.setAttribute('cy',(G.GROUND-4).toFixed(2));E.pool2.setAttribute('rx',170);E.pool2.setAttribute('ry',38);E.pool2g.style.opacity=String(flat);}
+  const L=placeLabel(b.x,b.y,depth,flat);
+  E['conv-text'].setAttribute('x',L.cx.toFixed(1));E['conv-text'].setAttribute('y',L.yb.toFixed(1));
+  E['conv-guide'].setAttribute('d',`M${L.cx.toFixed(1)},${(L.yb+12).toFixed(1)} L${b.x.toFixed(1)},${L.top.toFixed(1)}`);
+  // fletxa del missatge cap a la conversa (pas 2 al 5)
+  if(E.arrow){
+    const y1=G.CARD_Y+G.CARD_H+24,y2=L.yb-44,g=arrowGeometry(G.CARD_X,y1,L.cx,y2,st.arrow);
+    E['arrow-shaft'].setAttribute('d',g.shaft);E['arrow-head'].setAttribute('d',g.head);
+    E.arrow.style.opacity=st.arrow>.04?'1':'0';
+    if(E.msg)E.msg.style.transform=`translateY(${(st.nudge*8).toFixed(2)}px)`;
+  }
+  // pas 6: el resum alimenta la conversa nova
+  if(E.feed){
+    const sx=G.SUM_X-14,sy=G.SUM_Y+G.CARD_H/2,tx=b.x+G.R+12,ty=b.y-6;
+    const g=arrowGeometry(sx,sy,tx,ty,1);
+    E['feed-shaft'].setAttribute('d',g.shaft);E['feed-head'].setAttribute('d',g.head);
+    E.feed.style.opacity=String(clamp01((ms-700)/200));
+  }
+}
+
+/* ---------- Passos ---------- */
+function enter(sel,delay=0,dy=20,duration=500,fall=true){
+  /* Les fitxes «cauen» sobre la taula: giren sobre el cantell de baix (transform-box: fill-box al CSS). */
+  const from=fall?`perspective(700px) rotateX(-78deg) translateY(${-dy}px)`:`translateY(${dy}px)`;
+  return motion($(sel+' .card-in')||$(sel),[{opacity:0,transform:from},{opacity:1,transform:'none'}],{duration,delay});
+}
+function play(step){
+  const token=generation,total=TOTAL[step],t0=performance.now();
+  let done=false;
+  const end=()=>{if(done||token!==generation)return;done=true;paintStep(step,Infinity);};
+  const frame=()=>{
+    if(done||token!==generation)return;
+    const ms=Math.max(0,Math.min(total,performance.now()-t0));
+    paintStep(step,ms);
+    if(ms<total)requestAnimationFrame(frame);else end();
+  };
+  paintStep(step,0);
+  requestAnimationFrame(frame);
+  setTimeout(end,total+60);   // rescat si la pestanya queda en segon pla
+}
+function renderStep(step,previous){
+  show(buildStep(step,previous),TEXTOS.captions[step],TEXTOS.analogy);
+  cacheEls();
+  const intro=step===0&&generation===1&&!reduced();
+  const forward=step>previous&&!reduced();
+  // En tornar enrere (o amb moviment reduït) es pinta l'estat final, sense animar.
+  paintStep(step,Infinity);
+  if(intro){
+    const len=E.curve.getTotalLength();
+    E.curve.style.strokeDasharray=`${len} ${len}`;
+    motion(E.curve,[{strokeDashoffset:len},{strokeDashoffset:0}],{duration:900});
+    ['curve-h1','curve-h2','curve-core'].forEach(id=>{E[id].style.strokeDasharray=`${len} ${len}`;motion(E[id],[{strokeDashoffset:len},{strokeDashoffset:0}],{duration:900});});
+    motion(E.poolg,[{opacity:0},{opacity:1}],{duration:500,delay:1250});
+    // les crestes s'alcen de darrere, la més llunyana primer
+    RIDGES.forEach((r,k)=>motion(E[r.id],[{opacity:0,transform:'translateY(46px)'},{opacity:1,transform:'translateY(0)'}],{duration:700,delay:60+k*180}));
+    ['fill','shade','strata-0','strata-1','curve-hi'].forEach(id=>motion(E[id],[{opacity:0},{opacity:1}],{duration:700,delay:200}));
+    motion(E.dots,[{opacity:0},{opacity:1}],{duration:500,delay:500});
+    G.CENTRES.forEach((c,i)=>motion(E['valley-'+i],[{opacity:0,transform:'translateY(16px)'},{opacity:1,transform:'translateY(0)'}],{duration:500,delay:400+i*80}));
+    // la bola cau sobre el terreny: només es mou el contenidor #ball-drop (#ball porta el transform de la simulació)
+    motion(E['ball-drop'],[{opacity:0,transform:'translateY(-70px)'},{opacity:1,transform:'translateY(0)'}],{duration:650,delay:900});
+    motion(E.conv,[{opacity:0},{opacity:1}],{duration:400,delay:1150});
+    return;
+  }
+  if(!forward)return;
+  if(step===1||step===2)enter('#msg',0,14,760);
+  if(step===3)enter('#msg',0,18,820);
+  if(step===5){
+    enter('#newconv',350,18,560,false);enter('#summary',500,16,680);
+    motion($('#summary .floor'),[{opacity:0},{opacity:1}],{duration:500,delay:900});
+    motion(E.ghost,[{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-14px)'}],{duration:350});
+  }
+  play(step);
+}
+/* Fons temàtic (el crida IA-S1-comu.js): un horitzó suau. Cel en degradat lila, el resplendor de la llum
+   (a dalt a l'esquerra) i dues fileres de turons llunyans desenfocats. Sense text. Coordenades del SVG = escena + (140, 70). */
+window.fonsIA=function(capa){
+  const hillTop=(base,amps,ph)=>{            // només la línia de cim (per a la vora de llum)
+    let d='';
+    for(let x=0;x<=2200;x+=20){
+      let y=base;amps.forEach(([a,w,f],k)=>{y+=a*Math.sin(x/w+ph+f);});
+      d+=`${x?' L':'M'}${x},${y.toFixed(1)}`;
+    }
+    return d;
+  };
+  const hill=(base,amps,ph,col,op)=>{
+    const d=hillTop(base,amps,ph).replace('M0,','M0,1200 L0,');
+    return `<path d="${d} L2200,1200 Z" fill="${col}" fill-opacity="${op}"/>`;
+  };
+  capa.innerHTML=`<svg viewBox="0 0 2200 1200" aria-hidden="true">
+   <defs>
+    <linearGradient id="fo-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D7CEF6"/><stop offset=".22" stop-color="#E7E2F8"/><stop offset=".4" stop-color="#F4F1FB" stop-opacity=".7"/><stop offset=".55" stop-color="#F3F0E8" stop-opacity="0"/></linearGradient>
+    <radialGradient id="fo-sun" cx=".07" cy=".02" r=".5"><stop offset="0" stop-color="#FFFBEF" stop-opacity=".95"/><stop offset=".45" stop-color="#FFF7E6" stop-opacity=".45"/><stop offset="1" stop-color="#FFF7E6" stop-opacity="0"/></radialGradient>
+    <filter id="fo-b1" x="-5%" y="-20%" width="110%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="fo-b2" x="-5%" y="-20%" width="110%" height="140%"><feGaussianBlur stdDeviation="4"/></filter>
+    <filter id="fo-b3" x="-5%" y="-40%" width="110%" height="180%"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <linearGradient id="fo-rim" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="2200" y2="0"><stop offset="0" stop-color="#FFF4D6" stop-opacity=".95"/><stop offset=".5" stop-color="#FFF4D6" stop-opacity=".5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".2"/></linearGradient>
+    <radialGradient id="fo-bk"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/><stop offset=".5" stop-color="#CBBDFF" stop-opacity=".5"/><stop offset="1" stop-color="#9A86F2" stop-opacity="0"/></radialGradient>
+   </defs>
+   <rect x="0" y="0" width="2200" height="720" fill="url(#fo-sky)"/>
+   <ellipse cx="200" cy="40" rx="900" ry="520" fill="url(#fo-sun)"/>
+   <g filter="url(#fo-b1)">${hill(318,[[26,170,0],[12,70,1.7]],.6,'#C3B9EC',.5)}</g>
+   <g filter="url(#fo-b2)">${hill(352,[[22,140,2.4],[10,57,.4]],2.1,'#B1A5E6',.42)}</g>
+   <path d="${hillTop(318,[[26,170,0],[12,70,1.7]],.6)}" fill="none" stroke="url(#fo-rim)" stroke-width="3" filter="url(#fo-b3)"/>
+   <g>${[[440,300,22],[700,284,12],[1120,296,18],[1470,286,10],[1770,304,24],[1935,290,14]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="url(#fo-bk)"/>`).join('')}</g>
+  </svg>`;
+};
+boot(6,renderStep);
+</script><script src="IA-S1-comu.js"></script></body></html>
